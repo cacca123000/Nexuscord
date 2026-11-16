@@ -4,6 +4,7 @@ import { t, TranslationKey } from "../i18n";
 import { getOption, getPlugin, isEnabled, isRunning, NexusPlugin, onPluginsChange, PluginOption, setOption, setPluginEnabled } from "../pluginManager";
 import { ColorInput, Icon, Icons, openModal, Select, SettingRow, Slider, Switch, TextInput } from "../ui";
 import { onPageCleanup } from "../settingsUI";
+import { CATEGORY_ICONS, PLUGIN_ICONS, svgIcon } from "../icons";
 void h;
 void Fragment;
 
@@ -105,32 +106,20 @@ export function openPluginConfig(p: NexusPlugin) {
     openModal({ title: t("plugins.configure", { name: t(p.name) }), body, medium: true, onClose: dispose });
 }
 
-const CATEGORY_ICON: Record<string, string> = { appearance: "🎨", privacy: "🛡️", chat: "💬", media: "🎧", performance: "⚡", utility: "🔧", fun: "🎉" };
-/** A distinct icon per feature (falls back to the category icon). */
-const PLUGIN_ICON: Record<string, string> = {
-    customizer: "🎛️", customFonts: "🔤", backgroundImage: "🖼️", themeScheduler: "🌗", windowTweaks: "🪟", linkShield: "🔗", noTrack: "🚫", appLock: "🔒",
-    scamGuard: "🎣", pluginScanner: "🧪", silentTyping: "🤫", uploadPrivacy: "📍", clearUrlsOutgoing: "🧹", streamerPlus: "📺", translate: "🌍",
-    messageLogger: "🗂️", bookmarks: "🔖", scheduledMessages: "⏰", textSnippets: "✂️", keywordAlerts: "🔔", betterTimestamps: "🕒", timezoneConverter: "🌐",
-    accountAge: "🎂", imageViewer: "🔍", betterCodeBlocks: "💻", doubleClickActions: "🖱️", localNicknames: "🏷️", pinDms: "📌", hideBlocked: "🙈",
-    readAllButton: "✅", platformIndicators: "📱", whoReacted: "👀", relationshipNotifier: "💔", fakeNitro: "💎", volumeBooster: "🔊", customSounds: "🎵",
-    pictureInPicture: "🧷", customRpc: "🎮", musicPresence: "🎶", mediaDownloader: "⬇️", emojiCloner: "😀", lowRamOptimizer: "🧠", declutter: "🧽",
-    liteMode: "🪶", dataSaver: "📉", commandPalette: "⌨️", copyTools: "📋", showHiddenChannels: "🔐", safeModeGuard: "🛟", fancyText: "✨",
-    wrapped: "🎁", friendOnline: "🟢"
-};
-const iconOf = (p: NexusPlugin) => PLUGIN_ICON[p.id] ?? CATEGORY_ICON[p.category] ?? "✨";
+/** The feature's own icon (falls back to its category's icon). */
+export const iconOf = (p: NexusPlugin) => svgIcon(PLUGIN_ICONS[p.id] ?? CATEGORY_ICONS[p.category] ?? "sparkles");
 
 export function PluginCard(p: NexusPlugin): Node {
     const on = isEnabled(p.id);
     return (
         <div className={["nc-card interactive", on && "on"]} data-plugin={p.id}>
             <div className="nc-card-head">
-                <div className="nc-card-icon">{iconOf(p)}</div>
+                <div className="nc-card-icon" html={iconOf(p)} />
                 <div className="nc-card-title">{t(p.name)}</div>
                 {p.required ? <span className="nc-tag accent">{t("plugins.core")}</span> : <Switch checked={on} label={t(p.name)} onChange={v => setPluginEnabled(p.id, v)} />}
             </div>
             <div className="nc-card-desc">{t(p.description)}</div>
             <div className="nc-card-foot">
-                <span className="nc-tag">{t(`cat.${p.category}` as TranslationKey)}</span>
                 {p.tosRisk ? <span className="nc-tag warn" title={t("plugins.tosRiskHint")}>{t("plugins.tosRisk")}</span> : null}
                 {on && !isRunning(p.id) ? <span className="nc-tag danger">{t("plugins.notRunning")}</span> : null}
                 <span className="nc-spacer" />
@@ -156,7 +145,7 @@ export function PluginBlock(id: string): Node {
             return (
                 <>
                     <div className="nc-card-head" style="align-items:center">
-                        <div className="nc-card-icon">{iconOf(p)}</div>
+                        <div className="nc-card-icon" html={iconOf(p)} />
                         <div style="flex:1;min-width:0">
                             <div className="nc-card-title">{t(p.name)}</div>
                             <div className="nc-card-desc">{t(p.description)}</div>
@@ -181,7 +170,7 @@ export function PluginBlock(id: string): Node {
 export function PageHeader(props: { title: string; subtitle: string; icon: string; actions?: Node[] }) {
     return (
         <div className="nc-hero">
-            <div className="nc-logo" html={props.icon.replace(/stroke="currentColor"/g, 'stroke="#fff"')} />
+            <div className="nc-logo" html={props.icon} />
             <div>
                 <h1>{props.title}</h1>
                 <p>{props.subtitle}</p>

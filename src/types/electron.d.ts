@@ -51,6 +51,7 @@ declare module "electron" {
         isDestroyed(): boolean;
         isMinimized(): boolean;
         isVisible(): boolean;
+        isFocused(): boolean;
         show(): void;
         setBackgroundMaterial?(material: "auto" | "none" | "mica" | "acrylic" | "tabbed"): void;
         setBackgroundColor(color: string): void;

@@ -8,6 +8,7 @@ import { scanPlugin } from "../pluginScanner";
 import { onPageCleanup } from "../settingsUI";
 import { Button, Icons, openModal, SearchBox, Switch, Tabs } from "../ui";
 import { PluginCard } from "./common";
+import { svgIcon } from "../icons";
 import { StoreView } from "./store";
 void h;
 void Fragment;
@@ -30,8 +31,9 @@ function BuiltIn(redraw: () => void) {
             (!q || `${t(p.name)} ${t(p.description)} ${p.id}`.toLowerCase().includes(q))
     );
     const chip = (id: State["cat"], label: string, icon = "") => (
-        <button className={["nc-tab", state.cat === id && "active"]} type="button" onClick={() => ((state.cat = id), redraw())}>
-            {icon} {label}
+        <button className={["nc-chip", state.cat === id && "active"]} type="button" onClick={() => ((state.cat = id), redraw())}>
+            {icon ? <span className="nc-chip-icon" html={svgIcon(icon, 16)} /> : null}
+            {label}
         </button>
     );
     const groups = (state.cat === "all" ? CATEGORIES : CATEGORIES.filter(c => c.id === state.cat))
@@ -51,7 +53,7 @@ function BuiltIn(redraw: () => void) {
                     onChange={v => ((state.status = v), redraw())}
                 />
             </div>
-            <div className="nc-tabs">
+            <div className="nc-chips">
                 {chip("all", t("plugins.filter.all"))}
                 {CATEGORIES.map(c => chip(c.id, t(c.label), c.icon))}
             </div>
@@ -59,7 +61,7 @@ function BuiltIn(redraw: () => void) {
                 groups.map(g => (
                     <>
                         <h3 className="nc-section-title">
-                            {g.c.icon} {t(g.c.label)} <span className="nc-tag">{g.items.length}</span>
+                            <span html={svgIcon(g.c.icon, 16)} /> {t(g.c.label)} <span className="nc-tag">{g.items.length}</span>
                         </h3>
                         <div className="nc-grid">{g.items.map(PluginCard)}</div>
                     </>
@@ -102,7 +104,7 @@ function BdPlugins() {
                         return (
                             <div className={["nc-card interactive", on && "on"]}>
                                 <div className="nc-card-head">
-                                    <div className="nc-card-icon">🧩</div>
+                                    <div className="nc-card-icon" html={svgIcon("puzzle")} />
                                     <div className="nc-card-title">{p.meta.name}</div>
                                     <Switch checked={on} label={p.meta.name} onChange={v => BdCompat.setEnabled(p.file, v)} />
                                 </div>

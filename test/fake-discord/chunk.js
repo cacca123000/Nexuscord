@@ -79,7 +79,10 @@
         class GuildRoleStore { constructor() { this._dispatchToken = "7"; } getName() { return "GuildRoleStore"; }
             getRole(g, id) { return { r1: { id: "r1", name: "Moderator", colorString: "#3ddc97" } }[id]; } }
         class RelationshipStore { constructor() { this._dispatchToken = "8"; } getName() { return "RelationshipStore"; } isFriend(id) { return id === "444"; } isBlocked(id) { return id === "666"; } }
-        exports.P = new PermissionStore(); exports.G = new GuildChannelStore(); exports.R = new GuildRoleStore(); exports.Rel = new RelationshipStore();
+        // Like Discord's: builds the sidebar from GuildChannelStore + PermissionStore
+        class ChannelListStore { constructor() { this._dispatchToken = "9"; } getName() { return "ChannelListStore"; }
+            getGuild(g) { return { sidebar: exports.G.getChannels(g) }; } }
+        exports.P = new PermissionStore(); exports.G = new GuildChannelStore(); exports.R = new GuildRoleStore(); exports.Rel = new RelationshipStore(); exports.CL = new ChannelListStore();
     },
     999: (module, exports, req) => { [99, 100, 101, 102, 103, 104, 105, 106, 107, 109].forEach(id => req(id)); window.__discordBooted = true; }
 }, req => req(999)]);

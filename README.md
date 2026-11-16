@@ -3,8 +3,8 @@
 **All-in-one, lightweight Discord client mod for Windows.** It installs *into* Discord: everything lives in **User Settings → NexusCord**, right next to Discord's own settings.
 
 - **Vencord-style core.** TypeScript and esbuild, with webpack hooks, code patches, a safe patcher and Flux interceptors.
-- **BetterDiscord compatibility.** `.theme.css` and `.plugin.js` files work through a `BdApi` shim, and there's a built-in **BetterDiscord store** that scans plugins for malware.
-- **52 built-in features** across 7 categories, each one toggleable live.
+- **BetterDiscord compatibility.** `.theme.css` and `.plugin.js` files work through a `BdApi` layer (webpack finders, context menus, components, settings panels…). The built-in **store** lists every BetterDiscord plugin, marks the ones we tested as working, hides the ones NexusCord already does natively, installs required libraries automatically and scans everything for malware.
+- **78 built-in features** across 7 categories, each one toggleable live.
 - **Discord-synced language.** Complete English and Italian, plus Spanish, French, German and Portuguese packs. It follows Discord's language automatically, or you can choose one.
 - **One-click installer.** `NexusCord-Installer.exe` detects Discord Stable/PTB/Canary, closes it, patches it and relaunches it.
 
@@ -26,38 +26,38 @@ Discord updates are re-patched automatically while NexusCord runs. If NexusCord 
 | Page | Contents |
 | --- | --- |
 | **Overview** | Status dashboard (features, RAM, threats blocked), quick toggles, notification center, update notice |
-| **Plugins** | All 52 features by category, search and filters, per-feature settings; installed BetterDiscord plugins with a risk badge; **plugin store** |
+| **Plugins** | All 78 features by category, search and filters, per-feature settings; installed BetterDiscord plugins with a risk badge; **plugin store** with tested-compatibility badges and no duplicates |
 | **Themes** | Installed `.theme.css` files (hot reload), **theme store**, **QuickCSS+** editor (syntax colors, Discord variable autocomplete, live error check) |
 | **Appearance** | Customizer, fonts, background, theme scheduler, window opacity, Mica/Acrylic, custom app/tray icon and splash, language, section position |
 | **Privacy & Security** | LinkShield dashboard and lists, app lock, scam guard, plugin guard, NoTrack, silent typing, upload privacy… |
-| **Performance** | Live RAM chart with history, savings report, optimizers, V8 heap cap, auto-refresh when bloated, start minimized |
+| **Performance** | Live RAM chart with history, savings report, **memory saver** (balanced / aggressive Chromium & V8 limits), **free RAM while minimized** (Windows), optimizers, V8 heap cap, auto-refresh when bloated, start minimized |
 | **Tools & Backup** | Auto-update, backup/restore (file or private GitHub Gist), profiles, multiple accounts, safe mode, diagnostics, webpack module explorer |
 
-## The 52 features
+## The 78 features
 
 <details><summary><b>🎨 Appearance</b></summary>
 
-Customizer (accent color, roundness, density, text size) · Custom fonts (40 Google Fonts, UI and code) · Background image/video with blur and dim · Theme scheduler (day/night or follows Windows) · Window tweaks (draggable titlebar, translucent panels) · BD theme store · QuickCSS+ · Window opacity, Mica/Acrylic, custom icons and splash
+Customizer (accent color, roundness, density, text size) · Clean profiles (no avatar decorations, profile effects, nameplates) · Custom fonts (40 Google Fonts, UI and code) · Background image/video with blur and dim · Theme scheduler (day/night or follows Windows) · Window tweaks (draggable titlebar, translucent panels) · BD theme store · QuickCSS+ · Window opacity, Mica/Acrylic, custom icons and splash
 </details>
 
 <details><summary><b>🛡️ Privacy & Security</b></summary>
 
-LinkShield (phishing blacklist, spoofed links, lookalike domains, QR-login scam links, executable guard with VirusTotal check, link unshortener, tracker stripping, hover preview of the real destination, personal allow/block lists) · NoTrack · App lock (PIN / Windows Hello, idle lock) · Scam guard (scam DMs, new-account friend requests) · Plugin guard (static malware scan; BD plugins can never read your token) · Silent typing · Upload privacy (removes GPS/EXIF from photos, random file names) · Clean outgoing links · Streamer mode+ (blurs emails/phones/IPs, panic key)
+LinkShield (phishing blacklist, spoofed links, lookalike domains, QR-login scam links, executable guard with VirusTotal check, link unshortener, tracker stripping, hover preview of the real destination, personal allow/block lists) · NoTrack · App lock (PIN / Windows Hello, idle lock) · Scam guard (scam DMs, new-account friend requests) · Plugin guard (static malware scan; BD plugins can never read your token) · Silent typing · Blur NSFW · Private stream previews · Upload privacy (removes GPS/EXIF from photos, random file names) · Clean outgoing links · Streamer mode+ (blurs emails/phones/IPs, panic key)
 </details>
 
 <details><summary><b>💬 Chat</b></summary>
 
-Translate (inline or automatic) · Message logger (persistent and searchable) · Bookmarks with notes · Scheduled messages (`!later 10m …`) · Text snippets (`;shrug`) · Keyword alerts · Better timestamps · Timezone converter · Account age · Image viewer (zoom, pan, rotate, gallery) · Better code blocks · Double-click to edit/reply · Local nicknames · Pinned DMs · Hide blocked users · Read all · Platform indicators · Who reacted · Relationship notifier · FakeNitro (opt-in, ToS risk)
+Translate (inline or automatic) · Message logger (persistent and searchable) · Bookmarks with notes · Scheduled messages (`!later 10m …`) · Text snippets (`;shrug`) · Keyword alerts · Better timestamps · Timezone converter · Account age · Image viewer (zoom, pan, rotate, gallery) · Better code blocks · Double-click to edit/reply · Local nicknames · Pinned DMs · Hide blocked users · Read all · Platform indicators · Who reacted · Relationship notifier · No reply ping · Silent messages · Quick reply (Ctrl+↑/↓) · Smart timestamps (`{{18:30}}`) · Unindent code · Auto capitalize · Character counter · Ctrl+Enter to send · Typing indicator · Chat filter · Owner & admin tags · Show usernames · FakeNitro (opt-in, ToS risk)
 </details>
 
 <details><summary><b>🎧 Media & Voice</b></summary>
 
-Volume booster (up to 800%) · Custom sounds · Picture-in-picture · Custom Rich Presence · Now playing from any player (Windows media session) · Full-resolution downloads and "download all media in channel" · Emoji cloner
+Volume booster (up to 800%) · Custom sounds · Picture-in-picture · Custom Rich Presence (ready-made NexusCord preset with logo) · Now playing from any player (Windows media session) · Full-resolution downloads and "download all media in channel" · Emoji cloner · Call timer · Double-click to join voice
 </details>
 
 <details><summary><b>⚡ Performance · 🔧 Utilities · 🎉 Fun</b></summary>
 
-Low-RAM optimizer · Declutter (hide Nitro, Shop, Quests, gift buttons…) · Lite mode · Data saver · Command palette · Copy tools (text, quote, link, IDs, raw JSON) · ShowHiddenChannels · Crash guard · Fancy text · Discord Wrapped (local stats) · Friend online notifications
+Low-RAM optimizer · Declutter (hide Nitro, Shop, Quests, gift buttons…) · Lite mode · Data saver · Command palette · Copy tools (text, quote, link, IDs, raw JSON) · ShowHiddenChannels · Crash guard · View profile pictures · Reverse image search · Look it up (web, Wikipedia, Wiktionary, Urban Dictionary) · Member count · Online friends · Game activity toggle · Keep my channel · Never idle · No F1 · Fancy text · Discord Wrapped (local stats) · Friend online notifications
 </details>
 
 ---
@@ -74,9 +74,10 @@ npm run build:installer  # dist/NexusCord-Installer.exe (also cross-builds from 
 npm test                 # unit + injector + browser smoke tests (Playwright)
 npm run test:installer   # installer UI end to end
 npm run test:real        # verifies every hook against the REAL Discord web client
+node test/real/bd-plugins.mjs --write   # loads every BetterDiscord store plugin in real Discord, records what works
 ```
 
-Releases: push a tag like `v2.0.2`. `.github/workflows/release.yml` builds on Windows and publishes the exe plus `checksums.txt`. The in-app updater installs a release only after verifying those checksums.
+Releases: push a tag like `v2.1.0`. `.github/workflows/release.yml` builds on Windows and publishes the exe plus `checksums.txt`. The in-app updater installs a release only after verifying those checksums.
 
 ## How it works
 

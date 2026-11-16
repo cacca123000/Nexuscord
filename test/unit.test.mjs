@@ -158,3 +158,27 @@ test("plugin scanner: flags token stealers, passes normal plugins", () => {
     const normal = `module.exports = class { start() { BdApi.DOM.addStyle("x", ".a{}"); } stop() { BdApi.DOM.removeStyle("x"); } };`;
     assert.equal(scanPlugin(normal).risk, "low");
 });
+
+import { parseWhen, convertTimestamps, unindentCode, capitalize, formatDuration } from "../src/shared/text.ts";
+test("smart timestamps", () => {
+    const now = new Date(2026, 10, 16, 12, 0, 0);
+    assert.equal(convertTimestamps("meet at {{18:30}}", now), `meet at <t:${Math.round(new Date(2026, 10, 16, 18, 30).getTime() / 1000)}:t>`);
+    assert.equal(parseWhen("in 2h", now).unix, Math.round(now.getTime() / 1000) + 7200);
+    assert.equal(parseWhen("+30m", now).style, "R");
+    assert.equal(parseWhen("24/12/2026 20:00", now).unix, Math.round(new Date(2026, 11, 24, 20, 0).getTime() / 1000));
+    assert.equal(parseWhen("2026-12-24|F", now).style, "F");
+    assert.equal(convertTimestamps("{{not a time}} and {{25:99}}", now), "{{not a time}} and {{25:99}}");
+});
+test("unindent code blocks", () => {
+    assert.equal(unindentCode("```js\n    if (a) {\n        b();\n    }\n```"), "```js\nif (a) {\n    b();\n}\n```");
+    assert.equal(unindentCode("no code here"), "no code here");
+});
+test("auto capitalize keeps links and code", () => {
+    assert.equal(capitalize("hello there. how are you? i am fine"), "Hello there. How are you? I am fine");
+    assert.equal(capitalize("see https://example.com/abc. ok `code here`"), "See https://example.com/abc. Ok `code here`");
+    assert.equal(capitalize("/giphy cat"), "/giphy cat");
+});
+test("call timer format", () => {
+    assert.equal(formatDuration(65_000), "1:05");
+    assert.equal(formatDuration(3_725_000), "1:02:05");
+});

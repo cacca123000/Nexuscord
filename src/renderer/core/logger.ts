@@ -1,4 +1,4 @@
-const STYLE = "color:#fff;background:linear-gradient(90deg,#7c5cff,#3ec6ff);padding:1px 6px;border-radius:4px;font-weight:700";
+const STYLE = "color:#fff;background:#e57a4c;padding:1px 6px;border-radius:4px;font-weight:700";
 
 /** Last errors logged by NexusCord (for the diagnostics report). */
 export const errorLog: { at: number; scope: string; text: string }[] = [];

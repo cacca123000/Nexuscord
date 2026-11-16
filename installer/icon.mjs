@@ -1,8 +1,8 @@
-// Procedurally renders the NexusCord icon (gradient rounded square + "N" monogram) into a
+// Procedurally renders the NexusCord icon (warm rounded square + "N" monogram) into a
 // multi-size Windows .ico - no image tools or binary assets needed in the repository.
 const SIZES = [16, 20, 24, 32, 40, 48, 64, 128, 256];
-const A = [0x7c, 0x5c, 0xff];
-const B = [0x3e, 0xc6, 0xff];
+const A = [0xec, 0x86, 0x58];
+const B = [0xdc, 0x6c, 0x3e];
 
 function segDist(px, py, ax, ay, bx, by) {
     const dx = bx - ax, dy = by - ay;

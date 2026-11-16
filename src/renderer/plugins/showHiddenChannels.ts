@@ -16,7 +16,8 @@ import { getLanguage, t } from "../core/i18n";
 import { Patcher } from "../core/patcher";
 import { definePlugin } from "../core/pluginManager";
 import { Icons, openModal } from "../core/ui";
-import { findStore, waitFor, filters } from "../core/webpack";
+import { findStore, waitFor, filters, waitForMapped } from "../core/webpack";
+import { ROUTER_MARKERS } from "../core/discord";
 
 const ID = "showHiddenChannels";
 const VIEW_CHANNEL = 1n << 10n;
@@ -151,6 +152,11 @@ export default definePlugin({
         cleanups.push(
             waitFor(filters.byStoreName("GuildChannelStore"), store => {
                 Patcher.after(ID, store, "getChannels", (_s, [guildId], res) => {
+                    // Only while the sidebar list is built: everything else (default channel
+                    // when you click a server, permissions, unread counts) sees the real list.
+                    // Adding hidden channels everywhere made Discord pick a hidden channel as
+                    // the landing channel and clicking a server did nothing (2.0.x bug).
+                    if (!computingList) return res;
                     const ChannelStore = findStore("ChannelStore");
                     const all = ChannelStore?.getMutableGuildChannelsForGuild?.(guildId);
                     if (!res || !all) return res;
@@ -195,17 +201,25 @@ export default definePlugin({
             }, ID)
         );
 
-        // (3) Never actually open a hidden channel
+        // (3) Never actually open a hidden channel - but only intercept navigation the user
+        // started by clicking that channel. Anything else (clicking a server, links, Discord
+        // restoring the last channel) goes to the server instead of being swallowed.
+        let clicked: { id: string; at: number } | null = null;
+        const userClicked = (id?: string) => !!id && clicked?.id === id && Date.now() - clicked.at < 1500;
         cleanups.push(
             intercept(ID, action => {
-                if (action.type === "CHANNEL_SELECT" && openIfHidden(action.channelId)) return true;
+                if (action.type === "CHANNEL_SELECT" && userClicked(action.channelId) && openIfHidden(action.channelId)) return true;
             })
         );
         cleanups.push(
-            waitFor(filters.byProps("transitionTo", "replaceWith", "getHistory"), nav => {
+            waitForMapped(ROUTER_MARKERS, nav => {
                 Patcher.instead(ID, nav, "transitionTo", (self, args, original) => {
-                    const m = /^\/channels\/\d+\/(\d+)/.exec(String(args[0] ?? ""));
-                    if (m && openIfHidden(m[1])) return;
+                    const m = /^\/channels\/(\d+)\/(\d+)/.exec(String(args[0] ?? ""));
+                    if (m && hidden.has(m[2])) {
+                        if (userClicked(m[2]) && openIfHidden(m[2])) return;
+                        // Landing on a channel we can't read: let Discord pick one we can
+                        return original.apply(self, [`/channels/${m[1]}`, ...args.slice(1)]);
+                    }
                     return original.apply(self, args);
                 });
             }, ID)
@@ -214,6 +228,7 @@ export default definePlugin({
         const onClick = (e: MouseEvent) => {
             const item = (e.target as Element | null)?.closest?.('[data-list-item-id^="channels___"]');
             const id = item?.getAttribute("data-list-item-id")?.slice("channels___".length);
+            if (id) clicked = { id, at: Date.now() };
             if (id && openIfHidden(id)) {
                 e.preventDefault();
                 e.stopImmediatePropagation();

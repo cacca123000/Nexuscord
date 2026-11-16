@@ -39,7 +39,7 @@ export default definePlugin({
     start() {
         setStyle("nc-code", `pre[data-nc-code]{position:relative;border-radius:8px;overflow:hidden}
 .nc-code-head{display:flex;gap:10px;align-items:center;padding:4px 10px;font:700 11px var(--font-primary,sans-serif);letter-spacing:.04em;color:var(--text-muted,#949ba4);background:color-mix(in srgb,var(--background-base-lowest,#000) 50%,transparent);border-bottom:1px solid color-mix(in srgb,currentColor 15%,transparent)}
-.nc-code-copy{margin-left:auto;border:0;border-radius:6px;padding:3px 9px;background:var(--brand-500,#5865f2);color:#fff;font:600 11.5px var(--font-primary,sans-serif);cursor:pointer}.nc-code-copy:hover{filter:brightness(1.1)}
+.nc-code-copy{margin-left:auto;border:0;border-radius:6px;padding:3px 9px;background:var(--nc-accent,#e57a4c);color:#fff;font:600 11.5px var(--font-primary,sans-serif);cursor:pointer}.nc-code-copy:hover{filter:brightness(1.1)}
 pre.nc-code-numbered{display:grid;grid-template-columns:auto 1fr}pre.nc-code-numbered>.nc-code-head{grid-column:1/-1}
 .nc-code-gutter{padding:.5em .6em .5em .8em;text-align:right;white-space:pre;color:var(--text-muted,#949ba4);opacity:.55;user-select:none;font-family:var(--font-code,monospace);font-size:.875rem;line-height:1.125rem;border-right:1px solid color-mix(in srgb,currentColor 15%,transparent)}`);
         off = observe(ID, "pre", decorate);

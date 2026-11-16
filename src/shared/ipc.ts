@@ -54,9 +54,12 @@ export const IPC = {
     GIST_SYNC: "nexuscord:gist-sync",
     ADDON_INSTALL: "nexuscord:addon-install",
     ADDON_DELETE: "nexuscord:addon-delete",
+    ADDON_WRITE: "nexuscord:addon-write",
+    ADDON_READ: "nexuscord:addon-read",
     MAIN_EVENT: "nexuscord:main-event",
     APP_INFO: "nexuscord:app-info",
-    RENDERER_LOG: "nexuscord:renderer-log"
+    RENDERER_LOG: "nexuscord:renderer-log",
+    TRIM_MEMORY: "nexuscord:trim-memory"
 } as const;
 
 /** Hosts the renderer may reach through the main process (CORS-free) - nothing else. */

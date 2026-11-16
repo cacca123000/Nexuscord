@@ -1,5 +1,6 @@
 /* Themes page: installed BD themes, theme store, QuickCSS+ editor. */
 import { createView, h, Fragment } from "../dom";
+import { svgIcon } from "../icons";
 import { t } from "../i18n";
 import { Native } from "../native";
 import { onPageCleanup } from "../settingsUI";
@@ -76,7 +77,7 @@ export function QuickCssEditor(): Node {
     const paint = () => {
         hl.innerHTML = highlightCss(ta.value) + "\n";
         const err = checkCss(ta.value);
-        status.textContent = err ? `⚠ ${err}` : `✓ ${t("quickcss.valid", { lines: ta.value.split("\n").length })}`;
+        status.textContent = err ? `${err}` : `${t("quickcss.valid", { lines: ta.value.split("\n").length })}`;
         status.style.color = err ? "var(--nc-warn)" : "var(--nc-ok)";
     };
     const showSuggest = () => {
@@ -152,7 +153,7 @@ function Installed(redraw: () => void) {
                         return (
                             <div className={["nc-card interactive", on && "on"]}>
                                 <div className="nc-card-head">
-                                    <div className="nc-card-icon">🎨</div>
+                                    <div className="nc-card-icon" html={svgIcon("brush")} />
                                     <div className="nc-card-title">{th.meta.name}</div>
                                     <Switch checked={on} label={th.meta.name} onChange={v => ThemeEngine.setEnabled(th.file, v)} />
                                 </div>

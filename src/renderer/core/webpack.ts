@@ -38,7 +38,9 @@ export interface CodePatch {
  * (e.g. the 12 MB main `web.js` app plus a small `libdiscore` runtime), so every
  * instance is tracked and searched. `wreq` is the biggest one (the main app).
  */
-const instances: WebpackRequire[] = [];
+const instancesList: WebpackRequire[] = [];
+/** Every webpack runtime Discord started (there are several). */
+export const instances: readonly WebpackRequire[] = instancesList;
 export let wreq: WebpackRequire | undefined;
 export let cache: WebpackRequire["c"] | undefined;
 
@@ -114,7 +116,15 @@ export const filters = {
 // Module iteration helpers
 // ---------------------------------------------------------------------------
 function isBlacklisted(exp: any): boolean {
-    return exp == null || exp === window || exp === document || exp === document.documentElement || exp[Symbol.toStringTag] === "DOMTokenList";
+    if (exp == null || exp === window || exp === document || exp === document.documentElement) return true;
+    try {
+        const tag = exp[Symbol.toStringTag];
+        // Discord's intl message proxies answer to ANY key - they match every byProps filter
+        if (tag === "DOMTokenList" || tag === "IntlMessagesProxy") return true;
+    } catch {
+        return true;
+    }
+    return false;
 }
 
 /** Yields every interesting value a module exposes (exports, default, named exports). */
@@ -183,6 +193,101 @@ export function findExportKey(filter: FilterFn): [any, string] | undefined {
         }
     }
     return undefined;
+}
+
+/**
+ * Discord now exports many modules as separate minified functions (`pX`, `uh`, `Ak`...)
+ * instead of `{ transitionTo, transitionToGuild }`. These helpers find such a module by
+ * fingerprints in the functions' source and expose them under readable names. The
+ * returned object reads/writes through to the real exports, so it can be patched.
+ */
+export type CodeMarkers = Record<string, string | RegExp>;
+export function mapExports(exp: any, markers: CodeMarkers, required: string[] = Object.keys(markers).slice(0, 1)): any {
+    if (isBlacklisted(exp) || typeof exp !== "object") return undefined;
+    const names = Object.keys(markers);
+    const map: Record<string, string> = {};
+    for (const key in exp) {
+        let v: any;
+        try {
+            v = exp[key];
+        } catch {
+            continue;
+        }
+        if (typeof v !== "function") continue;
+        let src: string;
+        try {
+            src = Function.prototype.toString.call(v);
+        } catch {
+            continue;
+        }
+        for (const n of names) {
+            const m = markers[n];
+            if (!map[n] && (typeof m === "string" ? src.includes(m) : m.test(src))) map[n] = key;
+        }
+    }
+    if (!required.every(n => map[n])) return undefined;
+    const out: any = {};
+    for (const [name, key] of Object.entries(map)) {
+        Object.defineProperty(out, name, {
+            enumerable: true,
+            configurable: true,
+            get: () => exp[key],
+            set: v => {
+                exp[key] = v;
+            }
+        });
+    }
+    return out;
+}
+
+export function findMapped(markers: CodeMarkers, required?: string[]): any {
+    for (const mod of allCacheEntries()) {
+        const r = mod?.exports != null ? mapExports(mod.exports, markers, required) : undefined;
+        if (r) return r;
+    }
+    return undefined;
+}
+
+export function waitForMapped(markers: CodeMarkers, cb: (mod: any) => void, owner = "core", required?: string[]): () => void {
+    const first = (required ?? Object.keys(markers).slice(0, 1))[0];
+    const marker = markers[first];
+    return waitFor(
+        m => !!m && typeof m === "object" && Object.keys(m).length <= 40 && !!mapExports(m, { [first]: marker }),
+        exp => {
+            const mapped = mapExports(exp, markers, required);
+            if (mapped) cb(mapped);
+        },
+        owner
+    );
+}
+
+/**
+ * Some Discord objects are frozen, so their methods can't be patched in place. This swaps
+ * the module's export for a writable copy (exports are assignable, see makeExportsPatchable)
+ * and returns the copy - code that reads the export at call time then uses the copy.
+ */
+export function unfreezeExport<T extends object>(obj: T): T {
+    if (!obj || typeof obj !== "object") return obj;
+    const locked =
+        !Object.isExtensible(obj) ||
+        Reflect.ownKeys(obj).some(k => {
+            const d = Object.getOwnPropertyDescriptor(obj, k);
+            return !!d && !d.configurable && ("value" in d ? !d.writable : !d.set);
+        });
+    if (!locked) return obj;
+    const holder = findExportKey(m => m === obj);
+    if (!holder) return obj;
+    const copy = Object.create(Object.getPrototypeOf(obj));
+    for (const key of Reflect.ownKeys(obj)) {
+        const d = Object.getOwnPropertyDescriptor(obj, key)!;
+        Object.defineProperty(copy, key, { ...d, configurable: true, ...("value" in d ? { writable: true } : {}) });
+    }
+    try {
+        holder[0][holder[1]] = copy;
+        return holder[0][holder[1]] === copy ? copy : obj;
+    } catch {
+        return obj;
+    }
 }
 
 export const findByProps = (...props: string[]) => find(filters.byProps(...props));
@@ -351,9 +456,44 @@ function wrapFactory(id: PropertyKey, original: Function, force = false): Functi
     return wrapped;
 }
 
+/**
+ * Discord defines module exports as getter-only, non-configurable properties, so nothing
+ * could ever patch them (BetterDiscord/Vencord plugins rely on that). Like both of those
+ * mods, we redefine webpack's `d` helper so exports are configurable and assignable.
+ */
+function makeExportsPatchable(r: WebpackRequire): void {
+    const own = Object.prototype.hasOwnProperty;
+    try {
+        (r as any).d = function (exports: any, getters?: Record<string, () => any>, values?: Record<string, any>) {
+            if (getters) {
+                for (const key in getters) {
+                    if (!own.call(getters, key) || own.call(exports, key)) continue;
+                    Object.defineProperty(exports, key, {
+                        enumerable: true,
+                        configurable: true,
+                        get: getters[key],
+                        set(v) {
+                            Object.defineProperty(exports, key, { value: v, writable: true, configurable: true, enumerable: true });
+                        }
+                    });
+                }
+            }
+            if (values) {
+                for (const key in values) {
+                    if (!own.call(values, key) || own.call(exports, key)) continue;
+                    Object.defineProperty(exports, key, { value: values[key], writable: true, configurable: true, enumerable: true });
+                }
+            }
+        };
+    } catch (e) {
+        log.warn("Could not make webpack exports patchable", e);
+    }
+}
+
 function onWebpackRequire(r: WebpackRequire): void {
     if (!r?.m || instances.includes(r)) return;
-    instances.push(r);
+    instancesList.push(r);
+    makeExportsPatchable(r);
     const first = instances.length === 1;
     log.info(`Captured webpack runtime #${instances.length}`);
 
@@ -415,6 +555,8 @@ export const Webpack = {
     findStore,
     findComponentByCode,
     findExportKey,
+    findMapped,
+    mapExports,
     findByPropsLazy,
     findStoreLazy,
     lazy,

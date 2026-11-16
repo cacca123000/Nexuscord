@@ -35,7 +35,7 @@ export default definePlugin({
     description: "plugin.readAllButton.desc",
     category: "chat",
     start() {
-        setStyle("nc-read-all", `.nc-read-all{display:block;width:48px;margin:6px auto 4px;padding:4px 0;border:0;border-radius:8px;background:color-mix(in srgb,var(--brand-500,#5865f2) 22%,transparent);color:var(--header-primary,#fff);font:700 10px var(--font-primary,sans-serif);text-transform:uppercase;cursor:pointer}.nc-read-all:hover{background:var(--brand-500,#5865f2)}`);
+        setStyle("nc-read-all", `.nc-read-all{display:block;width:48px;margin:6px auto 4px;padding:4px 0;border:0;border-radius:8px;background:color-mix(in srgb,var(--nc-accent,#e57a4c) 22%,transparent);color:var(--header-primary,#fff);font:700 10px var(--font-primary,sans-serif);text-transform:uppercase;cursor:pointer}.nc-read-all:hover{background:var(--nc-accent,#e57a4c)}`);
         off = observe(ID, 'nav[class*="guilds"], [data-list-id="guildsnav"]', el => inject(el.closest("nav") ?? el));
     },
     stop() {

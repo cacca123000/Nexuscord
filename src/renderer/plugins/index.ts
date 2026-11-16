@@ -52,22 +52,52 @@ import whoReacted from "./whoReacted";
 import windowTweaks from "./windowTweaks";
 import wrapped from "./wrapped";
 
+import noReplyMention from "./noReplyMention";
+import silentMessages from "./silentMessages";
+import sendTimestamps from "./sendTimestamps";
+import unindent from "./unindent";
+import autoCapitalize from "./autoCapitalize";
+import charCounter from "./charCounter";
+import typingIndicator from "./typingIndicator";
+import noF1 from "./noF1";
+import noCosmetics from "./noCosmetics";
+import blurNsfw from "./blurNsfw";
+import chatFilter from "./chatFilter";
+import quickReply from "./quickReply";
+import keepCurrentChannel from "./keepCurrentChannel";
+import noIdle from "./noIdle";
+import streamPreviewPrivacy from "./streamPreviewPrivacy";
+import ctrlEnterSend from "./ctrlEnterSend";
+import voiceDoubleClick from "./voiceDoubleClick";
+import memberCount from "./memberCount";
+import onlineFriendCount from "./onlineFriendCount";
+import staffTag from "./staffTag";
+import showMeYourName from "./showMeYourName";
+import viewIcons from "./viewIcons";
+import reverseImageSearch from "./reverseImageSearch";
+import lookUp from "./lookUp";
+import callTimer from "./callTimer";
+import gameActivityToggle from "./gameActivityToggle";
+
 /** All built-in plugins (display order inside each category follows this list). */
 export const builtInPlugins: NexusPlugin[] = [
     // appearance
-    customizer, customFonts, backgroundImage, themeScheduler, windowTweaks,
+    customizer, customFonts, backgroundImage, themeScheduler, windowTweaks, noCosmetics,
     // privacy & security
-    linkShield, noTrack, appLock, scamGuard, pluginScanner, silentTyping, uploadPrivacy, clearUrlsOutgoing, streamerPlus,
+    linkShield, noTrack, appLock, scamGuard, pluginScanner, silentTyping, uploadPrivacy, clearUrlsOutgoing, streamerPlus, blurNsfw, streamPreviewPrivacy,
     // chat
     translate, messageLogger, bookmarks, scheduledMessages, textSnippets, keywordAlerts, betterTimestamps, timezoneConverter,
     accountAge, imageViewer, betterCodeBlocks, doubleClickActions, localNicknames, pinDms, hideBlocked, readAllButton,
     platformIndicators, whoReacted, relationshipNotifier, fakeNitro,
+    noReplyMention, silentMessages, quickReply, sendTimestamps, unindent, autoCapitalize, charCounter, ctrlEnterSend, typingIndicator,
+    chatFilter, staffTag, showMeYourName,
     // media
-    volumeBooster, customSounds, pictureInPicture, customRpc, musicPresence, mediaDownloader, emojiCloner,
+    volumeBooster, customSounds, pictureInPicture, customRpc, musicPresence, mediaDownloader, emojiCloner, callTimer, voiceDoubleClick,
     // performance
     lowRamOptimizer, declutter, liteMode, dataSaver,
     // utility
-    commandPalette, copyTools, showHiddenChannels, safeModeGuard,
+    commandPalette, copyTools, showHiddenChannels, safeModeGuard, viewIcons, reverseImageSearch, lookUp, memberCount,
+    onlineFriendCount, gameActivityToggle, keepCurrentChannel, noIdle, noF1,
     // fun
     fancyText, wrapped, friendOnline
 ];

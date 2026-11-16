@@ -1,6 +1,6 @@
 {
   "name": "nexuscord",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "description": "NexusCord - lightweight all-in-one Discord desktop client mod (Vencord-style core, BetterDiscord theme/plugin compatibility, LinkShield, Low-RAM engine).",
   "private": true,
   "license": "GPL-3.0-or-later",

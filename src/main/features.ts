@@ -5,7 +5,7 @@
  */
 import { spawn } from "child_process";
 import { createHash, randomBytes } from "crypto";
-import electron, { app, BrowserWindow, ipcMain, net, session, shell } from "electron";
+import electron, { app, BrowserWindow, ipcMain, net, session, shell, type ProcessMetric } from "electron";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "fs";
 import { basename, dirname, extname, join } from "path";
 import { HTTP_ALLOWLIST, IPC } from "../shared/ipc";
@@ -115,6 +115,7 @@ function sampleMemory() {
 
         const limit = getSettings().performance.autoRestartMB;
         const win = mainWindows()[0];
+        maybeTrim(win);
         if (limit > 0 && win && (win.isMinimized() || !win.isVisible()) && sample.renderer > limit) {
             if (++overLimitTicks >= 6) {
                 log(`Renderer at ${sample.renderer} MB while hidden (limit ${limit} MB) - reloading to free memory`);
@@ -123,6 +124,59 @@ function sampleMemory() {
             }
         } else overLimitTicks = 0;
     } catch { /* metrics unavailable */ }
+}
+
+// ---------------------------------------------------------------------------
+// Give RAM back to Windows while Discord is hidden. EmptyWorkingSet moves pages Discord
+// isn't touching out of RAM (they come back on demand when you open Discord again), which
+// is exactly what Task Manager's "Memory" column measures.
+// ---------------------------------------------------------------------------
+let hiddenSince = 0;
+let lastTrim = 0;
+let trimming = false;
+function maybeTrim(win: BrowserWindow | undefined) {
+    if (process.platform !== "win32" || !win || win.isDestroyed()) return;
+    const perf = getSettings().performance;
+    const hidden = win.isMinimized() || !win.isVisible();
+    const idleUnfocused = perf.memorySaver === "aggressive" && !win.isFocused();
+    if (!hidden && !idleUnfocused) {
+        hiddenSince = 0;
+        return;
+    }
+    hiddenSince ||= Date.now();
+    if (!perf.trimWhenHidden || trimming) return;
+    const waited = Date.now() - hiddenSince;
+    // First trim after 45 s hidden (3 min when merely unfocused), then every 10 min
+    if (waited < (hidden ? 45_000 : 180_000) || Date.now() - lastTrim < 600_000) return;
+    void trimWorkingSets("hidden");
+}
+
+export async function trimWorkingSets(reason: string): Promise<number> {
+    if (process.platform !== "win32" || trimming) return 0;
+    trimming = true;
+    lastTrim = Date.now();
+    try {
+        // Let the renderer drop its caches + run a full GC first
+        emitToRenderer("trim-memory");
+        await new Promise(r => setTimeout(r, 1500));
+        const before = app.getAppMetrics();
+        const pids = before.map(m => m.pid).filter(p => Number.isInteger(p) && p > 0);
+        if (!pids.length) return 0;
+        await powershell(
+            `Add-Type -Namespace NC -Name Mem -MemberDefinition '[DllImport("psapi.dll")] public static extern bool EmptyWorkingSet(System.IntPtr h);';` +
+                `foreach ($p in @(${pids.join(",")})) { try { [void][NC.Mem]::EmptyWorkingSet((Get-Process -Id $p -ErrorAction Stop).Handle) } catch {} }`,
+            20000
+        );
+        const ws = (list: ProcessMetric[]) => list.reduce((a, m) => a + (m.memory.workingSetSize ?? 0), 0);
+        const freed = Math.max(0, Math.round((ws(before) - ws(app.getAppMetrics())) / 1024));
+        log(`Trimmed working set (${reason}): ~${freed} MB returned to Windows`);
+        return freed;
+    } catch (e) {
+        log("Working-set trim failed", e);
+        return 0;
+    } finally {
+        trimming = false;
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -489,6 +543,27 @@ export function registerFeatureIpc(): void {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         writeFileSync(join(kind === "theme" ? THEMES_DIR : PLUGINS_DIR, name), res.body);
         return { ok: true, source: kind === "plugin" ? res.body : undefined };
+    });
+    const addonPath = (kind: "theme" | "plugin", fileName: string) => {
+        const name = basename(String(fileName));
+        const ok = kind === "theme" ? name.endsWith(".theme.css") : name.endsWith(".plugin.js") || name.endsWith(".config.json");
+        if (!ok || name.startsWith(".") || name.length > 200) throw new Error("bad file name");
+        return join(kind === "theme" ? THEMES_DIR : PLUGINS_DIR, name);
+    };
+    ipcMain.handle(IPC.TRIM_MEMORY, () => trimWorkingSets("manual"));
+    ipcMain.handle(IPC.ADDON_WRITE, (_e, kind: "theme" | "plugin", fileName: string, content: string) => {
+        const text = String(content);
+        if (text.length > 8 * 1024 * 1024) throw new Error("file too large");
+        writeFileSync(addonPath(kind, fileName), text);
+        return true;
+    });
+    ipcMain.on(IPC.ADDON_READ, (e, kind: "theme" | "plugin", fileName: string) => {
+        try {
+            const p = addonPath(kind, fileName);
+            e.returnValue = existsSync(p) ? readFileSync(p, "utf8") : null;
+        } catch {
+            e.returnValue = null;
+        }
     });
     ipcMain.handle(IPC.ADDON_DELETE, (_e, kind: "theme" | "plugin", fileName: string) => {
         const ext = kind === "theme" ? ".theme.css" : ".plugin.js";

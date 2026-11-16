@@ -47,9 +47,32 @@ const settings = getSettings();
 function applyCommandLine(): void {
     const perf = settings.performance;
     const cl = app.commandLine;
-    if (perf.maxOldSpaceSize > 0) {
-        const existing = cl.hasSwitch("js-flags") ? cl.getSwitchValue("js-flags") + " " : "";
-        cl.appendSwitch("js-flags", `${existing}--max-old-space-size=${perf.maxOldSpaceSize}`.trim());
+    const mode = perf.memorySaver ?? "balanced";
+    const appendList = (sw: string, values: string[], sep: string) => {
+        if (!values.length) return;
+        const existing = cl.hasSwitch(sw) ? cl.getSwitchValue(sw) : "";
+        cl.appendSwitch(sw, [existing, ...values].filter(Boolean).join(sep));
+    };
+
+    const js: string[] = [];
+    if (perf.maxOldSpaceSize > 0) js.push(`--max-old-space-size=${perf.maxOldSpaceSize}`);
+    if (mode !== "off") {
+        // Smaller young generation: fewer MB parked in short-lived objects
+        js.push(`--max-semi-space-size=${mode === "aggressive" ? 4 : 8}`);
+        // Lets NexusCord run a full GC when Discord is hidden
+        js.push("--expose-gc");
+    }
+    if (mode === "aggressive") js.push("--optimize-for-size");
+    appendList("js-flags", js, " ");
+
+    if (mode !== "off") {
+        // Chromium keeps a spare, idle renderer process around (30-60 MB) - Discord never needs it
+        appendList("disable-features", ["SpareRendererForSitePerProcess", "MediaRouter", "DialMediaRouteProvider"], ",");
+        appendList("enable-features", ["PartitionAllocMemoryReclaimer"], ",");
+    }
+    if (mode === "aggressive") {
+        cl.appendSwitch("force-gpu-mem-available-mb", "256");
+        cl.appendSwitch("renderer-process-limit", "2");
     }
     if (perf.processPerSite) cl.appendSwitch("process-per-site");
     if (perf.gpuRasterization) cl.appendSwitch("enable-gpu-rasterization");

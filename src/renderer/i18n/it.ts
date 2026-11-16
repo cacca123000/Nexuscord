@@ -1,5 +1,6 @@
 import type { enCore, TranslationKey } from "./en";
 import { itV2 } from "./it-v2";
+import { itV21 } from "./it-v21";
 
 /** Italiano - traduzione completa (il type checker garantisce che non manchi nessuna chiave). */
 const itCore: Record<keyof typeof enCore, string> = {
@@ -165,4 +166,4 @@ const itCore: Record<keyof typeof enCore, string> = {
     "bd.unsupported": "Questa API di BetterDiscord non è supportata da NexusCord: {api}"
 };
 
-export const it: Record<TranslationKey, string> = { ...itCore, ...itV2 };
+export const it: Record<TranslationKey, string> = { ...itCore, ...itV2, ...itV21 };

@@ -12,7 +12,7 @@ let stopWait = () => {};
 
 addCommands(() => [
     {
-        icon: "🤫",
+        icon: "keyboardOff",
         label: t("plugin.silentTyping.toggle"),
         kind: t("palette.kind.action"),
         run: () => {

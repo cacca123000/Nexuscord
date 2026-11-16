@@ -5,7 +5,7 @@
  */
 import { Logger } from "./logger";
 import { Patcher } from "./patcher";
-import { waitForProps } from "./webpack";
+import { waitFor } from "./webpack";
 
 const log = new Logger("Outgoing");
 
@@ -35,7 +35,7 @@ function run(channelId: string, message: OutgoingMessage, options: any, edit: bo
 function install() {
     if (installed) return;
     installed = true;
-    waitForProps(["sendMessage", "editMessage"], MessageActions => {
+    waitFor(m => typeof m?.sendMessage === "function" && typeof m?.editMessage === "function", MessageActions => {
         Patcher.instead("NexusCord:Outgoing", MessageActions, "sendMessage", (self, args, original) => {
             const [channelId, message, waitForChannel, options] = args;
             if (!hooks.length || !message || typeof message.content !== "string") return original.apply(self, args);

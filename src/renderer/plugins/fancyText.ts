@@ -56,7 +56,7 @@ function openGenerator() {
     setTimeout(() => input.focus(), 50);
 }
 
-addCommands(() => [{ icon: "✨", label: t("plugin.fancyText.open"), kind: t("palette.kind.action"), run: openGenerator }]);
+addCommands(() => [{ icon: "wand", label: t("plugin.fancyText.open"), kind: t("palette.kind.action"), run: openGenerator }]);
 
 export default definePlugin({
     id: ID,

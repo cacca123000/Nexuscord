@@ -13,13 +13,13 @@ const log = new Logger("Plugins");
 
 export type PluginCategory = "appearance" | "privacy" | "chat" | "media" | "performance" | "utility" | "fun";
 export const CATEGORIES: { id: PluginCategory; label: TranslationKey; icon: string }[] = [
-    { id: "appearance", label: "cat.appearance", icon: "🎨" },
-    { id: "privacy", label: "cat.privacy", icon: "🛡️" },
-    { id: "chat", label: "cat.chat", icon: "💬" },
-    { id: "media", label: "cat.media", icon: "🎧" },
-    { id: "performance", label: "cat.performance", icon: "⚡" },
-    { id: "utility", label: "cat.utility", icon: "🔧" },
-    { id: "fun", label: "cat.fun", icon: "🎉" }
+    { id: "appearance", label: "cat.appearance", icon: "palette" },
+    { id: "privacy", label: "cat.privacy", icon: "shield" },
+    { id: "chat", label: "cat.chat", icon: "chat" },
+    { id: "media", label: "cat.media", icon: "headphones" },
+    { id: "performance", label: "cat.performance", icon: "bolt" },
+    { id: "utility", label: "cat.utility", icon: "wrench" },
+    { id: "fun", label: "cat.fun", icon: "sparkles" }
 ];
 
 interface OptionBase {

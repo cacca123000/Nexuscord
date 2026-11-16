@@ -57,7 +57,7 @@ function List(): Node {
 
 export const openBookmarks = () => openModal({ title: t("plugin.bookmarks.name"), body: List(), medium: true });
 
-addCommands(() => [{ icon: "🔖", label: t("plugin.bookmarks.open"), kind: t("palette.kind.action"), run: openBookmarks }]);
+addCommands(() => [{ icon: "bookmark", label: t("plugin.bookmarks.open"), kind: t("palette.kind.action"), run: openBookmarks }]);
 
 export default definePlugin({
     id: ID,

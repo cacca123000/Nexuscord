@@ -63,13 +63,13 @@ export function openWrapped() {
             { className: "nc-stack", style: "gap:14px" },
             h("p", { className: "nc-sub", style: "margin:0" }, t("plugin.wrapped.since", { date: new Date(s.since).toLocaleDateString(lang), days })),
             h("div", { className: "nc-stats" }, stat(s.messages, t("plugin.wrapped.messages")), stat(Math.round(s.messages / days), t("plugin.wrapped.perDay")), stat(s.chars, t("plugin.wrapped.chars")), stat(s.attachments, t("plugin.wrapped.files")), stat(`${busiest}:00`, t("plugin.wrapped.busiestHour"))),
-            h("div", { className: "nc-card" }, h("div", { className: "nc-card-title" }, t("plugin.wrapped.hours")), h("div", { style: "display:flex;align-items:flex-end;gap:3px;height:90px" }, s.byHour.map((v, i) => h("div", { title: `${i}:00 — ${v}`, style: `flex:1;height:${Math.max(3, (v / maxH) * 100)}%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,#7c5cff,#3ec6ff)` })))),
+            h("div", { className: "nc-card" }, h("div", { className: "nc-card-title" }, t("plugin.wrapped.hours")), h("div", { style: "display:flex;align-items:flex-end;gap:3px;height:90px" }, s.byHour.map((v, i) => h("div", { title: `${i}:00 — ${v}`, style: `flex:1;height:${Math.max(3, (v / maxH) * 100)}%;border-radius:4px 4px 0 0;background:#e57a4c` })))),
             h("div", { className: "nc-grid" }, list(t("plugin.wrapped.topServers"), top(s.byGuild), k => (k === "dm" ? t("plugin.wrapped.dms") : GuildStore.getGuild?.(k)?.name ?? k)), list(t("plugin.wrapped.topChannels"), top(s.byChannel), k => `#${ChannelStore.getChannel?.(k)?.name ?? k}`), list(t("plugin.wrapped.topWords"), top(s.words, 8), k => k))
         )
     });
 }
 
-addCommands(() => [{ icon: "🎁", label: t("plugin.wrapped.open"), kind: t("palette.kind.action"), run: openWrapped }]);
+addCommands(() => [{ icon: "gift", label: t("plugin.wrapped.open"), kind: t("palette.kind.action"), run: openWrapped }]);
 
 export default definePlugin({
     id: ID,

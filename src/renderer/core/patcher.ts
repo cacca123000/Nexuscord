@@ -94,10 +94,12 @@ function getRecord(object: any, method: PropertyKey): PatchRecord {
 
     const desc = Object.getOwnPropertyDescriptor(object, method);
     if (desc && !desc.writable && !desc.set && !desc.configurable) throw new TypeError(`${String(method)} is not writable`);
-    if (desc && !desc.writable && desc.configurable && !desc.set) {
-        Object.defineProperty(object, method, { ...desc, writable: true });
+    if (desc && desc.configurable && (desc.get || !desc.writable) && !desc.set) {
+        // getter-only or read-only export: turn it into a plain writable value
+        Object.defineProperty(object, method, { value: wrapper, writable: true, configurable: true, enumerable: desc.enumerable ?? true });
+    } else {
+        object[method] = wrapper;
     }
-    object[method] = wrapper;
     return record;
 }
 

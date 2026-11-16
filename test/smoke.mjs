@@ -208,8 +208,10 @@ check("Translate: inline translation under the message", await page.evaluate(() 
 if (shots) await page.screenshot({ path: join(shots, "chat-features.png") });
 
 await enable("showHiddenChannels");
-const listed = await page.evaluate(() => NexusCord.Webpack.findStore("GuildChannelStore").getChannels("g1").SELECTABLE.map(e => e.channel.name).join(","));
-check("ShowHiddenChannels: hidden channel listed", listed === "general,mods-only", listed);
+const listed = await page.evaluate(() => NexusCord.Webpack.findStore("ChannelListStore").getGuild("g1").sidebar.SELECTABLE.map(e => e.channel.name).join(","));
+check("ShowHiddenChannels: hidden channel listed in the sidebar", listed === "general,mods-only", listed);
+const plain = await page.evaluate(() => NexusCord.Webpack.findStore("GuildChannelStore").getChannels("g1").SELECTABLE.map(e => e.channel.name).join(","));
+check("ShowHiddenChannels: server landing channel unaffected (2.0.x click bug)", plain === "general", plain);
 await page.click("[data-list-item-id='channels___1180000000000000000']");
 check("ShowHiddenChannels: read-only modal", (await modalTitle()) === "Hidden channel: #mods-only");
 await closeModals();
@@ -234,7 +236,7 @@ check("Onboarding wizard opens", (await modalTitle()) === "Welcome to NexusCord 
 if (shots) await page.screenshot({ path: join(shots, "onboarding.png") });
 await closeModals();
 
-check("all 52 plugins can start together", await page.evaluate(() => {
+check("all 78 plugins can start together", await page.evaluate(() => {
     const P = NexusCord.Plugins;
     for (const p of P.getPlugins()) if (!P.isRunning(p.id) && p.id !== "appLock") P.startPlugin(p.id);
     return P.getPlugins().filter(p => p.id !== "appLock" && !P.isRunning(p.id)).map(p => p.id).join(",") || true;

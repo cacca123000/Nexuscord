@@ -15,6 +15,7 @@ function createStub(): NexusCordNativeApi {
     let settings: NexusSettings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
     let quickCss = "";
     const noop = () => () => {};
+    const memFiles = new Map<string, string>();
     const stub = {
         version: NEXUSCORD_VERSION,
         platform: "browser",
@@ -48,8 +49,19 @@ function createStub(): NexusCordNativeApi {
             },
             purgeCache: async () => true,
             clearWebFrameCache: () => {},
+            trimNow: async () => 0,
             relaunch: async () => location.reload(),
             setAcrylic: async () => false
+        },
+        addons: {
+            install: async (kind: string, fileName: string, url: string) => {
+                const body = await fetch(url).then(r => r.text());
+                memFiles.set(`${kind}:${fileName}`, body);
+                return { ok: true, source: body };
+            },
+            remove: async (kind: string, fileName: string) => memFiles.delete(`${kind}:${fileName}`),
+            write: async (kind: string, fileName: string, content: string) => (memFiles.set(`${kind}:${fileName}`, content), true),
+            read: (kind: string, fileName: string) => memFiles.get(`${kind}:${fileName}`) ?? null
         },
         linkShield: {
             isPhishing: () => false,

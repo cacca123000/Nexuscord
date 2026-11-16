@@ -42,7 +42,23 @@ export function scanPlugin(source: string): ScanResult {
     return { risk, findings };
 }
 
-/** True if the current call stack comes from a BetterDiscord plugin file. */
+/** URL of the NexusCord renderer bundle, read from our own stack trace at load time. */
+const OWN_FILE = (() => {
+    const line = (new Error().stack ?? "").split("\n").find(l => /:\d+:\d+\)?$/.test(l)) ?? "";
+    return /\(?((?:[a-z-]+:\/\/|\/)[^\s()]+?|<anonymous>):\d+:\d+\)?$/.exec(line.trim())?.[1] ?? "nexuscord://renderer.js";
+})();
+
+/**
+ * True only when a BetterDiscord plugin is the DIRECT caller (after skipping NexusCord's
+ * own frames and the patched getToken wrapper). Discord's own HTTP code asking for the
+ * token while a BD plugin is somewhere further up the stack (e.g. a patched click
+ * handler) is allowed - blocking that broke navigation in 2.0.x.
+ */
 export function calledFromBdPlugin(): boolean {
-    return /betterdiscord:\/\/plugins\//.test(new Error().stack ?? "");
+    const frames = (new Error().stack ?? "").split("\n").slice(1);
+    for (const f of frames) {
+        if (f.includes(OWN_FILE) || f.includes("nexuscord://") || f.includes("nexuscord-patched://")) continue;
+        return /betterdiscord:\/\/plugins\//.test(f);
+    }
+    return false;
 }

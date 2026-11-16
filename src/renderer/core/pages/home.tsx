@@ -1,5 +1,6 @@
 /* "NexusCord" overview page: status at a glance, quick toggles, notification center. */
 import { BdCompat } from "../bdCompat";
+import { iconOf } from "./common";
 import { h, Fragment, reactive } from "../dom";
 import { getLanguage, t } from "../i18n";
 import { Native } from "../native";
@@ -90,6 +91,7 @@ export function HomePage(): Node {
                     .filter(Boolean)
                     .map(p => (
                         <div className={["nc-card interactive", isEnabled(p!.id) && "on"]} style="flex-direction:row;align-items:center;min-height:0">
+                            <div className="nc-card-icon" html={iconOf(p!)} />
                             <div style="flex:1;min-width:0">
                                 <div className="nc-card-title">{t(p!.name)}</div>
                                 <div className="nc-card-desc" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{t(p!.description)}</div>

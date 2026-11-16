@@ -53,40 +53,29 @@ await page.evaluate(async ids => {
 }, [...priority]);
 console.log("Priority chunks:", [...priority].join(", ") || "none");
 
-const stats = await page.evaluate(async () => {
+// Register every cached chunk directly (deterministic - no network, no rate limits),
+// then execute every module so NexusCord's finders see the whole client.
+const chunkFiles = readdirSync(CACHE).filter(f => f.endsWith(".js") && !f.startsWith("web.") && readFileSync(join(CACHE, f), "utf8").slice(0, 300).includes(".push([["));
+const stats = await page.evaluate(async files => {
     const r = NexusCord.Webpack.instances.reduce((a, b) => (Object.keys(b.m).length > Object.keys(a.m).length ? b : a));
-    const scripts = [...document.scripts].map(s => s.src).filter(s => /\/web\.[0-9a-f]+\.js/.test(s));
-    const text = await fetch(scripts[0]).then(x => x.text());
-    const start = text.indexOf("p.u=e=>{");
-    const body = text.slice(start, text.indexOf('})[e]+".js"}', start) + 20);
-    const ids = new Set();
-    for (const m of body.matchAll(/if\((\d+)===e\)return/g)) ids.add(+m[1]);
-    for (const m of body.slice(body.lastIndexOf("({")).matchAll(/(\d+):"[0-9a-f]+"/g)) ids.add(+m[1]);
-    const jsIds = [...ids].filter(id => !String(r.u(id)).startsWith("undefined"));
-    let ok = 0;
-    const failed = [];
-    const queue = jsIds.slice();
-    await Promise.all(Array.from({ length: 8 }, async () => {
-        while (queue.length) {
-            const id = queue.shift();
-            try { await r.e(id); ok++; } catch { failed.push(id); }
+    let ok = 0, fail = 0;
+    for (const f of files) {
+        try {
+            (0, eval)(await fetch("https://discord.com/assets/" + f).then(x => x.text()));
+            ok++;
+        } catch {
+            fail++;
         }
-    }));
-    // Retry failures one by one (parallel loading occasionally times out)
-    let fail = 0;
-    for (const id of failed) {
-        try { await r.e(id); ok++; } catch { fail++; }
     }
-    // Execute every module so finders can see exports (errors are expected for some)
     let executed = 0, threw = 0;
     const t0 = performance.now();
     for (const id of Object.keys(r.m)) {
         if (r.c[id]) continue;
         try { r(id); executed++; } catch { threw++; }
-        if (performance.now() - t0 > 120000) break;
+        if (performance.now() - t0 > 240000) break;
     }
-    return { chunks: jsIds.length, ok, fail, modules: Object.keys(r.m).length, executed, threw };
-});
+    return { chunks: files.length, ok, fail, modules: Object.keys(r.m).length, executed, threw };
+}, chunkFiles);
 console.log("Real Discord:", JSON.stringify(stats));
 if (process.env.INSPECT) { await page.evaluate(n => (window.__inspect = n), process.env.INSPECT); }
 if (process.env.EVAL) console.log("eval:", JSON.stringify(await page.evaluate(readFileSync(process.env.EVAL, "utf8")), null, 1));

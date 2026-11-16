@@ -16,6 +16,10 @@ export interface PerformanceSettings {
     /** Reload the window when it is hidden and above this many MB (0 = off). */
     autoRestartMB: number;
     startMinimized: boolean;
+    /** Extra Chromium/V8 memory flags: off, balanced (default) or aggressive */
+    memorySaver: "off" | "balanced" | "aggressive";
+    /** Windows: give RAM back to the system while Discord is minimized / in the tray */
+    trimWhenHidden: boolean;
 }
 
 export interface WindowSettings {
@@ -77,7 +81,9 @@ export const DEFAULT_SETTINGS: NexusSettings = {
         gpuRasterization: true,
         disableBackgroundTimerThrottling: false,
         autoRestartMB: 0,
-        startMinimized: false
+        startMinimized: false,
+        memorySaver: "balanced",
+        trimWhenHidden: true
     },
     window: { opacity: 1, material: "none", customIcon: "", customTrayIcon: "", splashColor: "", splashImage: "" },
     security: { appLock: false, pinHash: "", pinSalt: "", windowsHello: false },

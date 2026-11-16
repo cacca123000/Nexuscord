@@ -124,7 +124,7 @@ function LogViewer(): Node {
                               h("span", { className: "nc-sub" }, `${GuildStore.getGuild?.(e.guildId ?? "")?.name ?? "DM"} · ${new Date(e.at).toLocaleString(getLanguage())}`),
                               h("div", { style: "white-space:pre-wrap;margin-top:4px" }, e.content || "—"),
                               e.newContent != null ? h("div", { className: "nc-sub", style: "white-space:pre-wrap" }, "→ " + e.newContent) : null,
-                              e.attachments.length ? h("div", { className: "nc-sub" }, `📎 ${e.attachments.length}`) : null
+                              e.attachments.length ? h("div", { className: "nc-sub" }, `${t("plugin.messageLogger.attachments")}: ${e.attachments.length}`) : null
                           ),
                           h(Button as any, { variant: "icon", title: t("plugin.messageLogger.jump"), icon: Icons.external, onClick: () => jumpToMessage(e.guildId, e.channelId, e.id) })
                       )

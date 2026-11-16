@@ -5,7 +5,7 @@
  * feature that needs it.
  */
 import { dispatch, Dispatcher } from "./flux";
-import { find, findByProps, findStore, lazy } from "./webpack";
+import { find, findByProps, findMapped, findStore, lazy } from "./webpack";
 
 const store = <T = any>(name: string) => lazy<T>(() => findStore(name));
 
@@ -33,11 +33,17 @@ export const StreamerModeStore = store("StreamerModeStore");
 export const TypingStore = store("TypingStore");
 export const UserGuildSettingsStore = store("UserGuildSettingsStore");
 
-export const MessageActions = lazy(() => findByProps("sendMessage", "editMessage"));
-export const TypingActions = lazy(() => findByProps("startTyping", "stopTyping"));
+export const MessageActions = lazy(() => find(m => typeof m?.sendMessage === "function" && typeof m?.editMessage === "function"));
+export const TypingActions = lazy(() => find(m => typeof m?.startTyping === "function" && typeof m?.stopTyping === "function"));
 export const ComponentDispatch = lazy(() => findByProps("dispatchToLastSubscribed"));
 export const RestAPI = lazy(() => find(m => typeof m === "object" && m !== null && typeof m.del === "function" && typeof m.put === "function" && typeof m.patch === "function"));
-export const NavigationRouter = lazy(() => findByProps("transitionTo", "transitionToGuild") ?? findByProps("transitionTo", "replaceWith"));
+/** Fingerprints of Discord's router functions (their exports are minified nowadays). */
+export const ROUTER_MARKERS = { transitionTo: "transitionTo - Transitioning to", transitionToGuild: "transitionToGuild - Transitioning to", replaceWith: "Replacing route with" };
+export const NavigationRouter = lazy(
+    () => find(m => typeof m?.transitionTo === "function" && typeof m?.transitionToGuild === "function") ?? findMapped(ROUTER_MARKERS)
+);
+/** Discord's sound player (playSound(name, volume) in older builds). */
+export const SOUND_MARKERS = { playSound: "Unable to find sound for pack name" };
 export const PremiumUtils = lazy(() => findByProps("canUseEmojisEverywhere"));
 /**
  * React itself. A props-only filter is NOT enough: Discord's intl runtime also exports

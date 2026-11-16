@@ -1,4 +1,5 @@
 import { enV2 } from "./en-v2";
+import { enV21 } from "./en-v21";
 
 /** English (en-US) - the base language. Every key here MUST exist in it.ts (enforced by the type checker). */
 export const enCore = {
@@ -164,5 +165,5 @@ export const enCore = {
     "bd.unsupported": "This BetterDiscord API is not supported by NexusCord: {api}"
 } as const;
 
-export const en = { ...enCore, ...enV2 } as const;
+export const en = { ...enCore, ...enV2, ...enV21 } as const;
 export type TranslationKey = keyof typeof en;

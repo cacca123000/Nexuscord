@@ -29,7 +29,7 @@ export function isTelemetryUrl(url: unknown): boolean {
 
 let blockedCount = 0;
 
-function fakeXhrSuccess(xhr: XMLHttpRequest) {
+export function fakeXhrSuccess(xhr: XMLHttpRequest) {
     setTimeout(() => {
         for (const [k, v] of Object.entries({ readyState: 4, status: 204, statusText: "No Content", responseText: "", response: "" })) {
             Object.defineProperty(xhr, k, { value: v, configurable: true });

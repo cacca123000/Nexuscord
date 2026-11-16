@@ -1,5 +1,6 @@
 /* Performance page: live RAM dashboard + history chart, savings report, engine flags. */
 import { h, Fragment } from "../dom";
+import { svgIcon } from "../icons";
 import { getLanguage, t, TranslationKey } from "../i18n";
 import { Native } from "../native";
 import { onPageCleanup } from "../settingsUI";
@@ -44,9 +45,9 @@ export function RamDashboard(): Node {
                     <LineChart
                         unit=" MB"
                         series={[
-                            { label: t("perf.series.total"), color: "#7c5cff", values: last.map(x => x.total) },
-                            { label: t("perf.series.renderer"), color: "#3ec6ff", values: last.map(x => x.renderer) },
-                            { label: "GPU", color: "#3ddc97", values: last.map(x => x.gpu) }
+                            { label: t("perf.series.total"), color: "#e57a4c", values: last.map(x => x.total) },
+                            { label: t("perf.series.renderer"), color: "#a3a6ad", values: last.map(x => x.renderer) },
+                            { label: "GPU", color: "#3fb67a", values: last.map(x => x.gpu) }
                         ]}
                     />
                 ) : (
@@ -95,7 +96,7 @@ async function savingsReport() {
 
 export function PerformancePage(): Node {
     const p = Settings.get().performance;
-    const toggle = (k: "processPerSite" | "gpuRasterization" | "disableBackgroundTimerThrottling" | "startMinimized", label: TranslationKey, hint?: TranslationKey) => (
+    const toggle = (k: "processPerSite" | "gpuRasterization" | "disableBackgroundTimerThrottling" | "startMinimized" | "trimWhenHidden", label: TranslationKey, hint?: TranslationKey) => (
         <SettingRow label={t(label)} hint={hint ? t(hint) : undefined} control={<Switch checked={p[k]} onChange={v => perfSet(k, v)} />} />
     );
     return (
@@ -105,6 +106,15 @@ export function PerformancePage(): Node {
             <div className="nc-row-wrap">
                 <Button icon={Icons.trash} onClick={async () => (await Native.perf.purgeCache(), toast(t("perf.purged"), "success"))}>{t("perf.purge")}</Button>
                 <Button icon={Icons.bolt} onClick={savingsReport}>{t("perf.report")}</Button>
+                <Button
+                    icon={svgIcon("chip")}
+                    onClick={async () => {
+                        const mb = await Native.perf.trimNow?.();
+                        toast(mb ? t("perf.trimmed", { n: mb }) : t("perf.trimUnavailable"), mb ? "success" : "info");
+                    }}
+                >
+                    {t("perf.trimNow")}
+                </Button>
             </div>
             <h3 className="nc-section-title">{t("perf.optimizers")}</h3>
             {PluginBlock("lowRamOptimizer")}
@@ -113,6 +123,22 @@ export function PerformancePage(): Node {
             {PluginBlock("dataSaver")}
             <h3 className="nc-section-title">{t("perf.engine")}</h3>
             <div className="nc-stack">
+                <SettingRow
+                    label={t("perf.memorySaver")}
+                    hint={t("perf.memorySaverHint")}
+                    control={
+                        <Select
+                            value={p.memorySaver}
+                            options={[
+                                { value: "off", label: t("perf.memorySaver.off") },
+                                { value: "balanced", label: t("perf.memorySaver.balanced") },
+                                { value: "aggressive", label: t("perf.memorySaver.aggressive") }
+                            ]}
+                            onChange={v => perfSet("memorySaver", v as any)}
+                        />
+                    }
+                />
+                {toggle("trimWhenHidden", "perf.trimWhenHidden", "perf.trimWhenHiddenHint")}
                 <SettingRow
                     label={t("perf.maxOldSpace")}
                     hint={t("perf.maxOldSpaceHint")}

@@ -57,6 +57,8 @@ const NexusCordNative = {
             return ipcRenderer.invoke(IPC.PURGE_CACHE);
         },
         clearWebFrameCache: () => webFrame.clearCache(),
+        /** Windows: returns RAM Discord isn't using to the system now. Resolves to MB freed. */
+        trimNow: (): Promise<number> => ipcRenderer.invoke(IPC.TRIM_MEMORY),
         relaunch: () => ipcRenderer.invoke(IPC.RELAUNCH),
         setAcrylic: (enabled: boolean) => ipcRenderer.invoke(IPC.SET_ACRYLIC, !!enabled)
     },
@@ -79,7 +81,10 @@ const NexusCordNative = {
     },
     addons: {
         install: (kind: "theme" | "plugin", fileName: string, sourceUrl: string) => ipcRenderer.invoke(IPC.ADDON_INSTALL, kind, String(fileName), String(sourceUrl)),
-        remove: (kind: "theme" | "plugin", fileName: string) => ipcRenderer.invoke(IPC.ADDON_DELETE, kind, String(fileName))
+        remove: (kind: "theme" | "plugin", fileName: string) => ipcRenderer.invoke(IPC.ADDON_DELETE, kind, String(fileName)),
+        /** Writes a .plugin.js / .config.json (plugins) or .theme.css (themes) file - used by BD plugins' fs calls */
+        write: (kind: "theme" | "plugin", fileName: string, content: string) => ipcRenderer.invoke(IPC.ADDON_WRITE, kind, String(fileName), String(content)),
+        read: (kind: "theme" | "plugin", fileName: string): string | null => ipcRenderer.sendSync(IPC.ADDON_READ, kind, String(fileName))
     },
     window: {
         applySettings: () => ipcRenderer.invoke(IPC.WINDOW_SET),

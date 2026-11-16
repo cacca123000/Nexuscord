@@ -91,7 +91,7 @@ function Panel(): Node {
     );
 }
 
-addCommands(() => [{ icon: "🔒", label: t("plugin.appLock.lockNow"), kind: t("palette.kind.action"), run: lockNow }]);
+addCommands(() => [{ icon: "lock", label: t("plugin.appLock.lockNow"), kind: t("palette.kind.action"), run: lockNow }]);
 
 export default definePlugin({
     id: ID,

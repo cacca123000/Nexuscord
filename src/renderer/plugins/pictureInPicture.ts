@@ -37,7 +37,7 @@ export default definePlugin({
     description: "plugin.pictureInPicture.desc",
     category: "media",
     start() {
-        setStyle("nc-pip", `.nc-pip{position:absolute;top:8px;right:8px;z-index:5;width:30px;height:26px;border:0;border-radius:7px;background:rgba(0,0,0,.6);color:#fff;font-size:15px;cursor:pointer;opacity:0;transition:opacity .15s}*:hover>.nc-pip{opacity:1}.nc-pip:hover{background:var(--brand-500,#5865f2)}`);
+        setStyle("nc-pip", `.nc-pip{position:absolute;top:8px;right:8px;z-index:5;width:30px;height:26px;border:0;border-radius:7px;background:rgba(0,0,0,.6);color:#fff;font-size:15px;cursor:pointer;opacity:0;transition:opacity .15s}*:hover>.nc-pip{opacity:1}.nc-pip:hover{background:var(--nc-accent,#e57a4c)}`);
         off = observe(ID, "video", el => decorate(el as HTMLVideoElement));
     },
     stop() {

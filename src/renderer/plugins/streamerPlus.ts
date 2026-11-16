@@ -73,7 +73,7 @@ const onKey = (e: KeyboardEvent) => {
     }
 };
 
-addCommands(() => [{ icon: "🚨", label: t("plugin.streamerPlus.panic"), kind: t("palette.kind.action"), run: () => setPanic(!panic) }]);
+addCommands(() => [{ icon: "alert", label: t("plugin.streamerPlus.panic"), kind: t("palette.kind.action"), run: () => setPanic(!panic) }]);
 
 export default definePlugin({
     id: ID,
@@ -90,7 +90,7 @@ export default definePlugin({
     start() {
         const css = `.nc-sensitive{filter:blur(5px);transition:filter .15s;border-radius:3px;background:color-mix(in srgb,currentColor 12%,transparent)}.nc-sensitive:hover{filter:none}
 html.nc-panic #app-mount{filter:blur(22px) saturate(.6)!important;pointer-events:none}
-html.nc-panic body::after{content:"🚨  Ctrl+Shift+F9";position:fixed;inset:auto 0 40px 0;text-align:center;font:700 16px var(--font-primary,sans-serif);color:#fff;z-index:2147483647}`;
+html.nc-panic body::after{content:"Ctrl+Shift+F9";position:fixed;inset:auto 0 40px 0;text-align:center;font:700 16px var(--font-primary,sans-serif);color:#fff;z-index:2147483647}`;
         const imgCss = `html:not(.nc-no-streamer) li[id^="chat-messages-"] img:not([class*="emoji"]):not([class*="avatar"]),html:not(.nc-no-streamer) li[id^="chat-messages-"] video{filter:blur(18px);transition:filter .2s}li[id^="chat-messages-"] [class*="imageWrapper"]:hover img,li[id^="chat-messages-"] video:hover{filter:none!important}`;
         setStyle("nc-streamer-plus", css + (getOption(ID, "blurImages") && active() ? imgCss : ""));
         cleanups.push(observe(ID, '[id^="message-content-"], [class*="embedDescription"]', blurText));

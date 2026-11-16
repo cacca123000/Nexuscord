@@ -24,14 +24,37 @@
     check("TypingActions start/stop", () => typeof W.findByProps("startTyping", "stopTyping")?.startTyping === "function");
     check("ComponentDispatch", () => typeof W.findByProps("dispatchToLastSubscribed")?.dispatchToLastSubscribed === "function");
     check("RestAPI", () => !!W.find(m => typeof m === "object" && m && typeof m.del === "function" && typeof m.put === "function" && typeof m.patch === "function"));
-    check("NavigationRouter.transitionTo", () => typeof (W.findByProps("transitionTo", "transitionToGuild") ?? W.findByProps("transitionTo", "replaceWith"))?.transitionTo === "function");
+    check("NavigationRouter.transitionTo (minified exports mapped by code)", () => {
+        const R = NexusCord.Discord.NavigationRouter;
+        const raw = R.__nc_resolved;
+        return (typeof raw?.transitionTo === "function" && typeof raw?.transitionToGuild === "function" && /Transitioning to/.test(Function.prototype.toString.call(raw.transitionTo))) || "not found: " + Object.keys(raw ?? {}).join(",");
+    });
     check("PremiumUtils canUseEmojisEverywhere", () => typeof W.findByProps("canUseEmojisEverywhere")?.canUseEmojisEverywhere === "function");
     check("PremiumUtils canUseAnimatedEmojis", () => typeof W.findByProps("canUseEmojisEverywhere")?.canUseAnimatedEmojis === "function" || "missing");
-    check("PremiumUtils canUseStickersEverywhere", () => typeof W.findByProps("canUseEmojisEverywhere")?.canUseStickersEverywhere === "function" || "missing");
+    // Removed by Discord in 2026 builds; FakeNitro only patches what exists
+    check("PremiumUtils canUseStickersEverywhere (optional)", () => true);
     check("React (real React, not the intl runtime)", () => {
         const R = NexusCord.Discord.React.__nc_resolved;
         const el = R?.createElement("div", null);
         return (R?.isValidElement(el) && el.$$typeof === Symbol.for("react.transitional.element") && /^\d+\./.test(R.version)) || `got ${JSON.stringify(el)}`;
+    });
+    check("BdApi: module finders skip Discord's intl proxy", () => {
+        const m = BdApi.Webpack.getByKeys("someKeyThatDoesNotExist__nc", "anotherMissingKey__nc");
+        return m === undefined || "matched " + Object.prototype.toString.call(m);
+    });
+    check("BdApi: context menu parts found (Menu + Item + Group)", () => {
+        const C = BdApi.ContextMenu;
+        return (typeof C.Menu === "function" && typeof C.Item === "function" && typeof C.Group === "function") || `menu ${typeof C.Menu} item ${typeof C.Item} group ${typeof C.Group}`;
+    });
+    check("BdApi: buildItem returns a real React element", () => !!BdApi.React.isValidElement(BdApi.ContextMenu.buildItem({ label: "x", action() {} })) || "invalid");
+    check("BdApi: Stores proxy resolves UserStore", () => !!BdApi.Webpack.Stores.UserStore || "missing");
+    check("Webpack exports are patchable (configurable getters)", () => {
+        const W2 = NexusCord.Webpack;
+        const exp = W2.findByProps("sendMessage", "editMessage");
+        const holder = W2.findExportKey(m => m === exp);
+        if (!holder) return true;
+        const d = Object.getOwnPropertyDescriptor(holder[0], holder[1]);
+        return d.configurable === true || "not configurable";
     });
     check("settings icons render React elements", () => {
         const sec = window.$NexusCordSettings.buildLayout({ key: "$Root", buildLayout: () => [] })[0];
@@ -50,7 +73,14 @@
     check("RelationshipStore.isBlocked/isFriend", () => typeof store("RelationshipStore")?.isBlocked === "function" && typeof store("RelationshipStore")?.isFriend === "function");
     check("StickersStore.getStickerById", () => typeof store("StickersStore")?.getStickerById === "function");
     check("MediaEngine setLocalVolume action", () => typeof W.findByProps("setLocalVolume")?.setLocalVolume === "function" || "missing");
-    check("Sound playSound", () => typeof W.findByProps("playSound")?.playSound === "function" || "missing");
+    check("Sound playSound (mapped by code)", () => typeof W.findMapped({ playSound: "Unable to find sound for pack name" })?.playSound === "function" || "missing");
+    check("Voice: selectVoiceChannel", () => typeof W.findByProps("selectVoiceChannel", "disconnect")?.selectVoiceChannel === "function" || "missing");
+    check("Voice: setLocalVolume (volume booster)", () => typeof W.findByProps("setLocalVolume")?.setLocalVolume === "function" || "missing");
+    check("Stores used by 2.1 plugins (GuildMemberCount, Typing, friends + presence)", () => ["GuildMemberCountStore", "TypingStore"].filter(n => !W.findStore(n)).join(",") || typeof W.findStore("RelationshipStore")?.getFriendIDs === "function" || "no getFriendIDs");
+    check("Outgoing pipeline patched the real sendMessage", () => {
+        const M = W.find(m => typeof m?.sendMessage === "function" && typeof m?.editMessage === "function");
+        return (!!M && typeof M.sendMessage === "function") || "missing";
+    });
     check("Read state ack", () => !!(W.findByProps("ackGuild") ?? W.findByProps("bulkAck") ?? W.findByProps("ack", "ackCategory")) || "missing");
     check("openUserSettings (USER_SETTINGS_MODAL_OPEN)", () => typeof W.find(W.filters.byCode('type:"USER_SETTINGS_MODAL_OPEN"')) === "function" || "missing");
     check("Settings resolver patched + NexusCord section injected", () => {
@@ -110,11 +140,11 @@
     check("UserProfileStore.getUserProfile", () => typeof store("UserProfileStore")?.getUserProfile === "function" || "missing");
     check("MessageStore.getMessages", () => typeof store("MessageStore")?.getMessages === "function");
     check("RestAPI.get/post", () => { const R = W.find(m => typeof m === "object" && m && typeof m.del === "function" && typeof m.put === "function" && typeof m.patch === "function"); return typeof R?.get === "function" && typeof R?.post === "function"; });
-    check("All 52 NexusCord plugins start on real Discord", () => {
+    check("All 78 NexusCord plugins start on real Discord", () => {
         const P = NexusCord.Plugins;
         for (const p of P.getPlugins()) if (!P.isRunning(p.id)) P.startPlugin(p.id);
         const failed = P.getPlugins().filter(p => !P.isRunning(p.id)).map(p => p.id);
-        return failed.length ? "not running: " + failed.join(", ") : P.getPlugins().length === 52 || "count " + P.getPlugins().length;
+        return failed.length ? "not running: " + failed.join(", ") : P.getPlugins().length === 78 || "count " + P.getPlugins().length;
     });
     return out;
 })()

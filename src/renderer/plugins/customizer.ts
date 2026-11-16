@@ -52,7 +52,7 @@ export default definePlugin({
     category: "appearance",
     options: {
         useAccent: { type: "boolean", label: "plugin.customizer.opt.useAccent", default: false },
-        accent: { type: "color", label: "plugin.customizer.opt.accent", default: "#7c5cff" },
+        accent: { type: "color", label: "plugin.customizer.opt.accent", default: "#e57a4c" },
         useRadius: { type: "boolean", label: "plugin.customizer.opt.useRadius", default: false },
         radius: { type: "slider", label: "plugin.customizer.opt.radius", default: 8, min: 0, max: 24, unit: "px" },
         density: {

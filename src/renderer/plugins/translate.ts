@@ -72,7 +72,7 @@ export default definePlugin({
     start() {
         const css = document.createElement("style");
         css.id = "nc-translate-css";
-        css.textContent = `.nc-translation{margin:4px 0 2px;padding:6px 10px;border-left:3px solid var(--nc-accent,#7c5cff);border-radius:0 8px 8px 0;background:color-mix(in srgb,var(--nc-accent,#7c5cff) 8%,transparent)}.nc-translation-text{white-space:pre-wrap;color:var(--text-normal,#dbdee1)}`;
+        css.textContent = `.nc-translation{margin:4px 0 2px;padding:6px 10px;border-left:3px solid var(--nc-accent,#e57a4c);border-radius:0 8px 8px 0;background:color-mix(in srgb,var(--nc-accent,#e57a4c) 8%,transparent)}.nc-translation-text{white-space:pre-wrap;color:var(--text-normal,#dbdee1)}`;
         document.head?.appendChild(css);
         cleanups.push(() => css.remove());
         cleanups.push(

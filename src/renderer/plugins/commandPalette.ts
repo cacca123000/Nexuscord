@@ -1,6 +1,7 @@
 /* Command palette (#12): Ctrl+Shift+P - search & run anything NexusCord can do. */
 import { h, onDomReady } from "../core/dom";
 import { t } from "../core/i18n";
+import { hasIcon, svgIcon } from "../core/icons";
 import { Native } from "../core/native";
 import { definePlugin, getPlugins, isEnabled, setPluginEnabled } from "../core/pluginManager";
 import { getPages, openSettings } from "../core/settingsUI";
@@ -24,25 +25,25 @@ export function addCommands(fn: () => Command[]) {
 
 function commands(): Command[] {
     const list: Command[] = [];
-    for (const p of getPages()) list.push({ icon: "⚙️", label: `${t("palette.open")}: ${t(p.label)}`, kind: t("palette.kind.page"), run: () => openSettings(p.id) });
+    for (const p of getPages()) list.push({ icon: "gear", label: `${t("palette.open")}: ${t(p.label)}`, kind: t("palette.kind.page"), run: () => openSettings(p.id) });
     for (const p of getPlugins()) {
         if (p.required) continue;
         const on = isEnabled(p.id);
-        list.push({ icon: on ? "🟢" : "⚪", label: `${on ? t("palette.disable") : t("palette.enable")}: ${t(p.name)}`, kind: t("palette.kind.plugin"), run: () => setPluginEnabled(p.id, !on) });
+        list.push({ icon: on ? "check" : "plus", label: `${on ? t("palette.disable") : t("palette.enable")}: ${t(p.name)}`, kind: t("palette.kind.plugin"), run: () => setPluginEnabled(p.id, !on) });
     }
     for (const th of ThemeEngine.getThemes()) {
         const on = ThemeEngine.isEnabled(th.file);
-        list.push({ icon: "🎨", label: `${on ? t("palette.disable") : t("palette.enable")}: ${th.meta.name}`, kind: t("palette.kind.theme"), run: () => ThemeEngine.setEnabled(th.file, !on) });
+        list.push({ icon: "brush", label: `${on ? t("palette.disable") : t("palette.enable")}: ${th.meta.name}`, kind: t("palette.kind.theme"), run: () => ThemeEngine.setEnabled(th.file, !on) });
     }
     list.push(
-        { icon: "🧹", label: t("perf.purge"), kind: t("palette.kind.action"), run: () => Native.perf.purgeCache().then(() => toast(t("perf.purged"), "success")) },
-        { icon: "🔄", label: t("tools.restart"), kind: t("palette.kind.action"), run: () => Native.window.action("restart") },
-        { icon: "🛟", label: t("tools.safeRestart"), kind: t("palette.kind.action"), run: () => Native.window.action("restart-safe") },
-        { icon: "♻️", label: t("tools.reload"), kind: t("palette.kind.action"), run: () => Native.window.action("reload") },
-        { icon: "🧪", label: t("tools.devtools"), kind: t("palette.kind.action"), run: () => Native.window.action("devtools") },
-        { icon: "📋", label: t("tools.copyReport"), kind: t("palette.kind.action"), run: () => import("../core/pages/tools").then(m => copyText(m.diagnostics())) },
-        { icon: "📂", label: t("perf.openDataFolder"), kind: t("palette.kind.action"), run: () => Native.shell.openFolder("data") },
-        { icon: "✨", label: t("home.setup"), kind: t("palette.kind.action"), run: () => (window as any).NexusCord?.openOnboarding?.() }
+        { icon: "broom", label: t("perf.purge"), kind: t("palette.kind.action"), run: () => Native.perf.purgeCache().then(() => toast(t("perf.purged"), "success")) },
+        { icon: "refresh", label: t("tools.restart"), kind: t("palette.kind.action"), run: () => Native.window.action("restart") },
+        { icon: "lifebuoy", label: t("tools.safeRestart"), kind: t("palette.kind.action"), run: () => Native.window.action("restart-safe") },
+        { icon: "refresh", label: t("tools.reload"), kind: t("palette.kind.action"), run: () => Native.window.action("reload") },
+        { icon: "code", label: t("tools.devtools"), kind: t("palette.kind.action"), run: () => Native.window.action("devtools") },
+        { icon: "copy", label: t("tools.copyReport"), kind: t("palette.kind.action"), run: () => import("../core/pages/tools").then(m => copyText(m.diagnostics())) },
+        { icon: "folder", label: t("perf.openDataFolder"), kind: t("palette.kind.action"), run: () => Native.shell.openFolder("data") },
+        { icon: "sparkles", label: t("home.setup"), kind: t("palette.kind.action"), run: () => (window as any).NexusCord?.openOnboarding?.() }
     );
     for (const f of extraCommands) {
         try {
@@ -83,7 +84,7 @@ export function openPalette() {
                 h(
                     "div",
                     { className: `nc-palette-item${i === sel ? " sel" : ""}`, role: "option", onMouseDown: (e: MouseEvent) => (e.preventDefault(), exec(c)), onMouseMove: () => i !== sel && ((sel = i), render()) },
-                    h("span", { className: "nc-palette-icon" }, c.icon),
+                    h("span", { className: "nc-palette-icon", html: hasIcon(c.icon) ? svgIcon(c.icon, 18) : "" }, hasIcon(c.icon) ? null : c.icon),
                     c.label,
                     h("span", { className: "nc-palette-kind" }, c.kind)
                 )

@@ -7,6 +7,7 @@
  *  - Client-side previews of profile themes/decorations + a local profile badge
  * Users who actually have Nitro are left completely untouched.
  */
+import { unfreezeExport } from "../core/webpack";
 import { h, onDomReady, setStyle } from "../core/dom";
 import { t } from "../core/i18n";
 import { Patcher } from "../core/patcher";
@@ -106,7 +107,8 @@ export default definePlugin({
     start() {
         // Client-side unlocks
         cleanups.push(
-            waitFor(filters.byProps("canUseEmojisEverywhere"), utils => {
+            waitFor(filters.byProps("canUseEmojisEverywhere"), found => {
+                const utils = unfreezeExport(found);
                 const checks = [
                     ...EMOJI_CHECKS,
                     ...(getOption(ID, "stickers") ? STICKER_CHECKS : []),
@@ -162,7 +164,7 @@ export default definePlugin({
         );
 
         // Local badge on your own profile
-        setStyle("nc-fake-nitro", `.nc-local-badge{width:22px;height:22px;border-radius:6px;display:inline-grid;place-items:center;background:linear-gradient(135deg,#7c5cff,#3ec6ff);margin:0 2px}.nc-local-badge svg{width:14px;height:14px}`);
+        setStyle("nc-fake-nitro", `.nc-local-badge{width:22px;height:22px;border-radius:6px;display:inline-grid;place-items:center;background:#e57a4c;margin:0 2px}.nc-local-badge svg{width:14px;height:14px}`);
         let queued = false;
         const obs = new MutationObserver(() => {
             if (queued) return;

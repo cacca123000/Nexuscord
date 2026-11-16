@@ -2,7 +2,7 @@
  * NexusCord renderer entry point - runs in Discord's main world, injected by
  * the preload BEFORE Discord's own scripts so the webpack hook wins the race.
  */
-import { initBdCompat } from "./core/bdCompat";
+import { BdCompat, initBdCompat } from "./core/bdCompat";
 import { setStyle, onDomReady } from "./core/dom";
 import { Flux, initFlux, subscribe } from "./core/flux";
 import { I18n, initI18n } from "./core/i18n";
@@ -59,6 +59,7 @@ function boot() {
         Themes: ThemeEngine,
         Discord,
         ContextMenu: { registerMenuItem, getLastTarget },
+        BdCompat,
         openSettings,
         openOnboarding,
         mountPage,
@@ -87,6 +88,15 @@ function boot() {
             if (!Settings.get().onboardingDone && !isSafeMode()) setTimeout(openOnboarding, 6000);
         });
         setTimeout(startBd, 15000);
+
+        // Main process asks us to shrink before it trims Discord's working set
+        Native.system?.onEvent?.((event: string) => {
+            if (event !== "trim-memory") return;
+            try {
+                Native.perf.clearWebFrameCache();
+                (window as any).gc?.();
+            } catch { /* gc not exposed */ }
+        });
 
         Native.linkShield.onBlocked(url => toast(I18n.t("shield.blockedByMain", { url }), "error", 6000));
         log.info(`Ready in ${(performance.now() - started).toFixed(1)}ms`);

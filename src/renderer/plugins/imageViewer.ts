@@ -27,7 +27,7 @@ function channelImages(): string[] {
         .filter((s, i, a) => s && a.indexOf(s) === i);
 }
 
-function open(src: string) {
+export function openImageViewer(src: string) {
     const list = channelImages();
     let idx = Math.max(0, list.indexOf(src));
     let scale = 1, x = 0, y = 0, rot = 0;
@@ -88,7 +88,7 @@ function onClick(e: MouseEvent) {
     if (!img?.src || img.closest('[class*="embedVideo"], [class*="gifFavorite"]')) return;
     e.preventDefault();
     e.stopImmediatePropagation();
-    open(img.src);
+    openImageViewer(img.src);
 }
 
 export default definePlugin({

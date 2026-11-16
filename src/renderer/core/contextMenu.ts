@@ -146,7 +146,7 @@ function start() {
     started = true;
     setStyle(
         "nc-ctx",
-        `.nc-ctx-item.nc-ctx-hover{background:var(--menu-item-default-hover-bg,var(--brand-500,#5865f2))!important;color:#fff!important}
+        `.nc-ctx-item.nc-ctx-hover{background:var(--menu-item-default-hover-bg,var(--nc-accent,#e57a4c))!important;color:#fff!important}
          .nc-ctx-item.nc-ctx-danger{color:var(--status-danger,#f23f43)}.nc-ctx-item.nc-ctx-danger.nc-ctx-hover{background:var(--status-danger,#f23f43)!important}
          .nc-ctx-group:not(:first-child){margin-top:2px}`
     );

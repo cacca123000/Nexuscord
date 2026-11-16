@@ -6,7 +6,8 @@ import { Patcher } from "../core/patcher";
 import { definePlugin } from "../core/pluginManager";
 import { dataStore } from "../core/storage";
 import { Button, toast } from "../core/ui";
-import { waitForProps } from "../core/webpack";
+import { waitForMapped } from "../core/webpack";
+import { SOUND_MARKERS } from "../core/discord";
 
 const ID = "customSounds";
 type Entry = { mode: "custom"; dataUrl: string; name: string; volume: number } | { mode: "mute" };
@@ -51,7 +52,7 @@ export default definePlugin({
     category: "media",
     settingsPanel: Panel,
     start() {
-        stopWait = waitForProps(["playSound"], mod => {
+        stopWait = waitForMapped(SOUND_MARKERS, mod => {
             Patcher.instead(ID, mod, "playSound", (self, args, original) => {
                 const e = store.get()[String(args[0])];
                 if (!e) return original.apply(self, args);
