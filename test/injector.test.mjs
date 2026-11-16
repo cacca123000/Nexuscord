@@ -16,7 +16,11 @@ const require = createRequire(import.meta.url);
 test("injector boots Discord with NexusCord hooks", async () => {
     const sandbox = mkdtempSync(join(tmpdir(), "nc-injector-"));
     const resources = join(sandbox, "resources");
-    const asar = join(resources, "app.asar"); // a plain folder stands in for the asar archive
+    // Installed layout: Discord's archive renamed to _app.asar (a plain folder stands in for
+    // the archive here) and resources/app.asar is the NexusCord loader folder.
+    const asar = join(resources, "_app.asar");
+    mkdirSync(join(resources, "app.asar"), { recursive: true });
+    writeFileSync(join(resources, "app.asar", "index.js"), "// NexusCord shim");
     mkdirSync(asar, { recursive: true });
     writeFileSync(join(asar, "package.json"), JSON.stringify({ name: "discord", productName: "Discord", main: "app_bootstrap/index.js" }));
     mkdirSync(join(asar, "app_bootstrap"));

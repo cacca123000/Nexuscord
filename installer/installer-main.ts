@@ -12,7 +12,7 @@
  */
 import { execFile, spawn, ChildProcess } from "child_process";
 import { randomBytes } from "crypto";
-import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "fs";
 import { createServer, IncomingMessage, ServerResponse } from "http";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -121,14 +121,36 @@ function appDirs(root: string): { dir: string; version: string }[] {
         .sort((a, b) => compareVersions(b.version, a.version));
 }
 
-function shimState(resources: string): "ours" | "foreign" | "none" {
-    const idx = join(resources, "app", "index.js");
-    if (!existsSync(idx)) return existsSync(join(resources, "app")) ? "foreign" : "none";
+/*
+ * Layout (same technique as Vencord - required because Discord's Electron only loads
+ * `app.asar`, ignoring a `resources/app` folder):
+ *   resources/_app.asar          <- Discord's original archive (renamed)
+ *   resources/app.asar/          <- folder: index.js + package.json (NexusCord loader)
+ */
+const isDir = (p: string) => {
+    try {
+        return statSync(p).isDirectory();
+    } catch {
+        return false;
+    }
+};
+
+function readShim(dir: string): "ours" | "foreign" | "none" {
+    const idx = join(dir, "index.js");
+    if (!existsSync(idx)) return existsSync(dir) ? "foreign" : "none";
     try {
         return readFileSync(idx, "utf8").includes(SHIM_MARKER) ? "ours" : "foreign";
     } catch {
         return "foreign";
     }
+}
+
+/** "ours" = current layout installed; "legacy" = old v1/v2.0 `resources/app` folder only. */
+function shimState(resources: string): "ours" | "legacy" | "foreign" | "none" {
+    const asar = join(resources, "app.asar");
+    if (isDir(asar)) return readShim(asar);
+    const legacy = readShim(join(resources, "app"));
+    return legacy === "ours" ? "legacy" : legacy;
 }
 
 let runningCache: Set<string> = new Set();
@@ -161,7 +183,7 @@ export async function detect(): Promise<BranchState[]> {
             root,
             version: dirs[0]?.version ?? null,
             installed: states[0] === "ours",
-            patchedVersions: states.filter(s => s === "ours").length,
+            patchedVersions: states.filter(s => s === "ours" || s === "legacy").length,
             totalVersions: dirs.length,
             foreignMod: states[0] === "foreign",
             running: runningCache.has(b.exe.toLowerCase())
@@ -237,6 +259,44 @@ export interface ActionResult {
     messages: string[];
 }
 
+/** Applies the loader to one `resources` folder. Returns false if there is no Discord archive. */
+function patchResources(resources: string, pkg: string, force: boolean): boolean {
+    const asar = join(resources, "app.asar");
+    const original = join(resources, "_app.asar");
+    if (existsSync(asar) && !isDir(asar)) {
+        // Fresh Discord archive: it becomes the original (replacing any stale copy)
+        rmSync(original, { force: true });
+        renameSync(asar, original);
+    } else if (isDir(asar)) {
+        const state = readShim(asar);
+        if (state === "foreign" && !force) return false;
+        rmSync(asar, { recursive: true, force: true });
+    }
+    if (!existsSync(original)) return false;
+    mkdirSync(asar, { recursive: true });
+    writeFileSync(join(asar, "index.js"), shimSource());
+    writeFileSync(join(asar, "package.json"), pkg);
+    // Migrate away from the old (ignored) resources/app loader
+    if (readShim(join(resources, "app")) === "ours") rmSync(join(resources, "app"), { recursive: true, force: true });
+    return true;
+}
+
+function unpatchResources(resources: string): boolean {
+    let changed = false;
+    const asar = join(resources, "app.asar");
+    const original = join(resources, "_app.asar");
+    if (isDir(asar) && readShim(asar) === "ours") {
+        rmSync(asar, { recursive: true, force: true });
+        if (existsSync(original)) renameSync(original, asar);
+        changed = true;
+    }
+    if (readShim(join(resources, "app")) === "ours") {
+        rmSync(join(resources, "app"), { recursive: true, force: true });
+        changed = true;
+    }
+    return changed;
+}
+
 async function install(branchId: BranchId, opts: { force?: boolean } = {}): Promise<ActionResult> {
     const b = BRANCHES.find(x => x.id === branchId)!;
     const dirs = appDirs(join(LOCALAPPDATA, b.folder));
@@ -244,7 +304,7 @@ async function install(branchId: BranchId, opts: { force?: boolean } = {}): Prom
 
     const latestState = shimState(join(dirs[0].dir, "resources"));
     if (latestState === "foreign" && !opts.force) {
-        return { ok: false, messages: [`Another mod already uses ${join(dirs[0].dir, "resources", "app")}. Remove it first (or use Repair to overwrite).`] };
+        return { ok: false, messages: [`Another mod already patched ${join(dirs[0].dir, "resources", "app.asar")}. Uninstall it first (or use Repair to replace it).`] };
     }
 
     const killed = await killDiscord(b);
@@ -253,14 +313,10 @@ async function install(branchId: BranchId, opts: { force?: boolean } = {}): Prom
     let patched = 0;
     for (const d of dirs) {
         const resources = join(d.dir, "resources");
-        if (!existsSync(join(resources, "app.asar")) && !existsSync(join(resources, "_app.asar"))) continue;
-        const appDir = join(resources, "app");
-        if (opts.force && shimState(resources) === "foreign") rmSync(appDir, { recursive: true, force: true });
-        mkdirSync(appDir, { recursive: true });
-        writeFileSync(join(appDir, "index.js"), shimSource());
-        writeFileSync(join(appDir, "package.json"), pkg);
-        patched++;
-        log(`Patched ${resources}`);
+        if (patchResources(resources, pkg, !!opts.force)) {
+            patched++;
+            log(`Patched ${resources}`);
+        }
     }
     return { ok: patched > 0, messages: [`${b.label} ${dirs[0].version}: patched ${patched} version folder(s)${killed ? " (Discord was closed)" : ""}.`] };
 }
@@ -272,13 +328,12 @@ async function uninstall(branchId: BranchId): Promise<ActionResult> {
     let removed = 0;
     for (const d of dirs) {
         const resources = join(d.dir, "resources");
-        if (shimState(resources) !== "ours") continue;
-        rmSync(join(resources, "app"), { recursive: true, force: true });
+        if (!unpatchResources(resources)) continue;
         removed++;
         log(`Unpatched ${resources}`);
     }
     // Remove the shared payload only if no branch still uses it (user themes/plugins/settings are kept)
-    const stillUsed = BRANCHES.some(other => appDirs(join(LOCALAPPDATA, other.folder)).some(d => shimState(join(d.dir, "resources")) === "ours"));
+    const stillUsed = BRANCHES.some(other => appDirs(join(LOCALAPPDATA, other.folder)).some(d => ["ours", "legacy"].includes(shimState(join(d.dir, "resources")))));
     if (!stillUsed) rmSync(PAYLOAD_DIR, { recursive: true, force: true });
     return { ok: true, messages: [`${b.label}: removed NexusCord from ${removed} version folder(s)${killed ? " (Discord was closed)" : ""}. Your themes/plugins were kept in ${DATA_DIR}.`] };
 }

@@ -54,13 +54,14 @@ await page.uncheck("#relaunch", { force: true }).catch(() => page.evaluate(() =>
 await page.click("#install");
 await page.waitForSelector(".status.ok, .status.err", { timeout: 15000 });
 check("install succeeds", await page.isVisible(".status.ok"), await page.textContent("#status"));
-check("shim written", existsSync(join(sandbox, "local", "Discord", "app-1.0.9175", "resources", "app", "index.js")));
+const res = join(sandbox, "local", "Discord", "app-1.0.9175", "resources");
+check("loader written as app.asar/ + original renamed to _app.asar", existsSync(join(res, "app.asar", "index.js")) && existsSync(join(res, "_app.asar")));
 check("UI shows Installed", (await page.locator(".branch.sel .pill.ok").count()) === 1);
 if (shots) await page.screenshot({ path: join(shots, "installer-installed.png") });
 
 await page.click("#uninstall");
 await page.waitForFunction(() => !document.querySelector(".spin"));
-check("uninstall succeeds", !existsSync(join(sandbox, "local", "Discord", "app-1.0.9175", "resources", "app")));
+check("uninstall restores Discord's original app.asar", !existsSync(join(res, "_app.asar")) && existsSync(join(res, "app.asar")) && !existsSync(join(res, "app.asar", "index.js")));
 
 console.log(errors.length ? "Page errors:\n  " + errors.join("\n  ") : "No page errors");
 await browser.close();

@@ -6,7 +6,7 @@
  * our hooks, then hand control to Discord's real app.asar.
  */
 import electron, { app, BrowserWindow, BrowserWindowConstructorOptions } from "electron";
-import { existsSync, readFileSync } from "fs";
+import { appendFileSync, existsSync, readFileSync, statSync, writeFileSync } from "fs";
 import Module from "module";
 import { dirname, join } from "path";
 import { isPluginEnabled } from "../shared/settings";
@@ -14,13 +14,24 @@ import { initAutoRepatch } from "./autoRepatch";
 import { applyWindowSettings, initFeatures, maybeStyleSplash, registerFeatureIpc, SAFE_MODE } from "./features";
 import { consumeAllowOnce, isHttpUrl, notifyLinkBlocked, originalPreloads, registerIpc } from "./ipc";
 import { initLinkShieldMain, isPhishingHost } from "./linkShieldMain";
-import { ensureDataDirs } from "./paths";
+import { DATA_DIR, ensureDataDirs } from "./paths";
 import { getSettings, onSettingsChange } from "./settings";
 import { installWebRequestHooks, isTrackingUrl, stripCsp } from "./webRequest";
 
-const log = (...a: unknown[]) => console.log("[NexusCord]", ...a);
-
 ensureDataDirs();
+// Main-process log file (%APPDATA%\NexusCord\nexuscord.log) - the first thing to check if
+// NexusCord does not show up in Discord.
+const LOG_FILE = join(DATA_DIR, "nexuscord.log");
+try {
+    if (statSync(LOG_FILE).size > 512 * 1024) writeFileSync(LOG_FILE, "");
+} catch { /* first run */ }
+const log = (...a: unknown[]) => {
+    console.log("[NexusCord]", ...a);
+    try {
+        appendFileSync(LOG_FILE, `[${new Date().toISOString()}] ${a.map(x => (x instanceof Error ? x.stack : typeof x === "string" ? x : JSON.stringify(x))).join(" ")}\n`);
+    } catch { /* ignore */ }
+};
+process.on("uncaughtException", e => log("UNCAUGHT", e));
 const settings = getSettings();
 
 // ---------------------------------------------------------------------------
@@ -63,7 +74,10 @@ const PatchedBrowserWindow = new Proxy(electron.BrowserWindow, {
             }
         }
         const win = Reflect.construct(target, args, newTarget) as BrowserWindow;
-        if (original) originalPreloads.set(win.webContents.id, original);
+        if (original) {
+            originalPreloads.set(win.webContents.id, original);
+            log(`Window "${options?.title ?? "?"}" gets NexusCord preload (original: ${original})`);
+        }
         try {
             maybeStyleSplash(win);
             if (original && options?.title) {
@@ -146,8 +160,17 @@ function installSessionHooks(): void {
 // 4. Boot Discord's real app.asar
 // ---------------------------------------------------------------------------
 function loadDiscord(): void {
-    const candidates = ["app.asar", "_app.asar"].map(f => join(process.resourcesPath, f));
-    const asarPath = candidates.find(p => existsSync(p));
+    // Installed layout: Discord's archive was renamed to _app.asar and resources/app.asar is
+    // our loader folder. The legacy layout (resources/app folder) still has app.asar intact.
+    const isFile = (p: string) => {
+        try {
+            return statSync(p).isFile();
+        } catch {
+            return false;
+        }
+    };
+    const candidates = ["_app.asar", "app.asar"].map(f => join(process.resourcesPath, f));
+    const asarPath = candidates.find(isFile) ?? candidates.find(p => existsSync(p) && !p.endsWith(join("resources", "app.asar")));
     if (!asarPath) {
         log("FATAL: Discord app.asar not found in", process.resourcesPath);
         return;
@@ -169,7 +192,7 @@ function loadDiscord(): void {
 }
 
 function main(): void {
-    log(`v${NEXUSCORD_VERSION} starting (data: ${dirname(PRELOAD_PATH)})`);
+    log(`v${NEXUSCORD_VERSION} starting - Electron ${process.versions.electron}, resources: ${process.resourcesPath}, dist: ${dirname(PRELOAD_PATH)}`);
     try {
         applyCommandLine();
     } catch (e) {
@@ -197,7 +220,7 @@ function main(): void {
             log("Feature init failed:", e);
         }
         try {
-            initAutoRepatch();
+            initAutoRepatch(log);
         } catch (e) {
             log("Auto re-patch failed:", e);
         }

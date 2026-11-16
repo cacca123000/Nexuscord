@@ -19,7 +19,7 @@
 3. Pick your Discord and click **Install / Update**. Discord restarts with NexusCord inside.
 4. Open **User Settings → NexusCord**, or press **Ctrl + Alt + N**. A short setup wizard appears on first launch. **Ctrl + Shift + P** opens the command palette anywhere.
 
-Discord updates are re-patched automatically while NexusCord runs. **Repair** in the installer fixes anything else. If a plugin or theme ever breaks Discord, NexusCord restarts in **safe mode** by itself after two failed starts.
+Discord updates are re-patched automatically while NexusCord runs. If NexusCord doesn't appear, check `%APPDATA%\NexusCord\nexuscord.log`. **Repair** in the installer fixes anything else. If a plugin or theme ever breaks Discord, NexusCord restarts in **safe mode** by itself after two failed starts.
 
 ## What's inside Discord's settings
 
@@ -80,7 +80,7 @@ Releases: push a tag like `v2.0.1`. `.github/workflows/release.yml` builds on Wi
 
 ## How it works
 
-- **Injection.** The installer writes a two-file shim to `Discord/app-x/resources/app`. That shim loads `%APPDATA%\NexusCord\dist\injector.js`, which applies the Chromium flags, swaps in NexusCord's preload while keeping Discord's own (so voice, Krisp and screen share are unaffected), hooks `webRequest` (CSP, telemetry, phishing guard) and then boots Discord's real `app.asar`.
+- **Injection.** Discord's Electron only loads `resources/app.asar`, so the installer renames Discord's archive to `_app.asar` and puts a two-file loader *folder* named `app.asar` in its place (the same technique Vencord uses). That loader loads `%APPDATA%\NexusCord\dist\injector.js`, which applies the Chromium flags, swaps in NexusCord's preload while keeping Discord's own (so voice, Krisp and screen share are unaffected), hooks `webRequest` (CSP, telemetry, phishing guard) and then boots Discord's real `app.asar`.
 - **Settings inside Discord.** Discord's 2025+ settings are a layout tree (`ROOT → SECTION → SIDEBAR_ITEM → PANEL → CATEGORY → CUSTOM`). NexusCord patches the layout resolver to add its own section. If Discord ever refactors that, a DOM fallback still places NexusCord in the settings sidebar.
 - **Resilience.** Every finder, patch and plugin is isolated. Code patches handle Discord's method-shorthand module factories, and NexusCord tracks *all* of Discord's webpack runtimes (there are 4). If something moves after an update, only that one feature turns off.
 - **Security.** The renderer gets a narrow, validated bridge with no generic file or network access. Network calls go only to allowlisted hosts. The GitHub token is encrypted with the OS keychain. BD plugins get no Node.js access and cannot read your token.
