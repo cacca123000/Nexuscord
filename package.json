@@ -13,7 +13,8 @@
     "verify": "npm run typecheck && npm run build",
     "inject": "node dist/installer/installer.cjs --cli install",
     "uninject": "node dist/installer/installer.cjs --cli uninstall",
-    "test": "node test/smoke.mjs"
+    "test": "node --test test/unit.test.mjs test/injector.test.mjs && node test/smoke.mjs",
+    "test:installer": "node test/installer-ui.mjs"
   },
   "engines": {
     "node": ">=20.12"

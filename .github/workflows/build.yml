@@ -1,0 +1,35 @@
+name: Build NexusCord
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - run: node --test test/unit.test.mjs test/injector.test.mjs
+      - run: npm run build:installer
+      - name: Smoke-test the CLI of the built exe
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath dist\NexusCord-Installer.exe -ArgumentList '--cli','status' -Wait -PassThru
+          Get-Content "$env:TEMP\NexusCord-Installer.log"
+          if ($p.ExitCode -ne 0) { exit $p.ExitCode }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NexusCord-Installer
+          path: |
+            dist/NexusCord-Installer.exe
+            dist/injector.js
+            dist/preload.js
+            dist/renderer.js

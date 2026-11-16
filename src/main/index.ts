@@ -72,25 +72,24 @@ const PatchedBrowserWindow = new Proxy(electron.BrowserWindow, {
 });
 
 function patchElectronExports(): void {
-    const electronPath = require.resolve("electron");
-    const cached = require.cache[electronPath];
     const proxy = new Proxy(electron, {
         get(target, key, receiver) {
             if (key === "BrowserWindow") return PatchedBrowserWindow;
             return Reflect.get(target, key, receiver);
         }
     });
-    if (cached) {
-        cached.exports = proxy;
-    } else {
-        // Electron builtin not in cache: intercept Module._load instead
-        const M = Module as unknown as { _load: (req: string, ...rest: unknown[]) => unknown };
-        const origLoad = M._load;
-        M._load = function (request: string, ...rest: unknown[]) {
-            if (request === "electron") return proxy;
-            return origLoad.call(this, request, ...rest);
-        };
-    }
+    // 1. Every future require("electron") (Discord's code) gets the proxy
+    const M = Module as unknown as { _load: (req: string, ...rest: unknown[]) => unknown };
+    const origLoad = M._load;
+    M._load = function (request: string, ...rest: unknown[]) {
+        if (request === "electron") return proxy;
+        return origLoad.call(this, request, ...rest);
+    };
+    // 2. Also swap the cached module object if Electron exposes one
+    try {
+        const cached = require.cache[require.resolve("electron")];
+        if (cached) cached.exports = proxy;
+    } catch { /* builtin without a cache entry */ }
 }
 
 // ---------------------------------------------------------------------------
