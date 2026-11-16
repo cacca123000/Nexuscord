@@ -11,7 +11,7 @@
  * 3. Ctrl+Alt+N / tray menu open Discord settings directly on the NexusCord page.
  */
 import { h, onDomReady, setStyle } from "./dom";
-import { React, SettingsLayoutTypes } from "./discord";
+import { isReactModule, React, SettingsLayoutTypes } from "./discord";
 import { subscribe } from "./flux";
 import { onLanguageChange, t, TranslationKey } from "./i18n";
 import { Logger } from "./logger";
@@ -82,12 +82,36 @@ export function onPageCleanup(fn: () => void) {
 // ---------------------------------------------------------------------------
 const reactCache = new Map<string, any>();
 
+/** Error boundary so a broken NexusCord page can never take Discord's settings down with it. */
+function boundary(): any {
+    if (reactCache.has("$boundary")) return reactCache.get("$boundary");
+    const R = (React as any).__nc_resolved ?? React;
+    class NexusCordBoundary extends R.Component<any, { error: unknown }> {
+        state = { error: null as unknown };
+        static getDerivedStateFromError(error: unknown) {
+            return { error };
+        }
+        componentDidCatch(error: unknown, info: any) {
+            log.error("Settings page crashed", error, info?.componentStack ?? "");
+        }
+        render() {
+            if (this.state.error) return React.createElement("div", { className: "nc-banner danger" }, t("common.error", { error: String((this.state.error as Error)?.message ?? this.state.error) }));
+            return this.props.children;
+        }
+    }
+    reactCache.set("$boundary", NexusCordBoundary);
+    return NexusCordBoundary;
+}
+
 function pageComponent(id: PageId) {
     if (reactCache.has(id)) return reactCache.get(id);
-    const C = function NexusCordPage() {
+    function NexusCordPageHost() {
         const ref = React.useRef(null);
         React.useEffect(() => (ref.current ? mountPage(ref.current, id) : undefined), []);
         return React.createElement("div", { ref, className: "nc-settings-host" });
+    }
+    const C = function NexusCordPage() {
+        return React.createElement(boundary(), null, React.createElement(NexusCordPageHost));
     };
     reactCache.set(id, C);
     return C;
@@ -96,11 +120,27 @@ function pageComponent(id: PageId) {
 function iconComponent(svg: string) {
     const key = "icon:" + svg.length + svg.slice(-40);
     if (reactCache.has(key)) return reactCache.get(key);
-    const C = (props: any) =>
-        React.createElement("span", { className: `nc-native-icon ${props?.className ?? ""}`, dangerouslySetInnerHTML: { __html: svg }, "aria-hidden": true });
+    const C = function NexusCordIcon(props: any) {
+        try {
+            const el = React.createElement("span", { className: `nc-native-icon ${props?.className ?? ""}`, dangerouslySetInnerHTML: { __html: svg }, "aria-hidden": true });
+            return React.isValidElement(el) ? el : null;
+        } catch {
+            return null;
+        }
+    };
     reactCache.set(key, C);
     return C;
 }
+
+/** Hooks Discord calls on our nodes must never throw and must always return a string. */
+const safeTitle = (fn: () => string, fallback: string) => () => {
+    try {
+        const v = fn();
+        return typeof v === "string" && v ? v : fallback;
+    } catch {
+        return fallback;
+    }
+};
 
 function buildSection(): any {
     const T = (SettingsLayoutTypes as any).__nc_resolved ?? FALLBACK_TYPES;
@@ -112,13 +152,13 @@ function buildSection(): any {
             getPages().map(p => ({
                 key: keyFor(p.id),
                 type: T.SIDEBAR_ITEM,
-                useTitle: () => t(p.label),
+                useTitle: safeTitle(() => t(p.label), p.id),
                 icon: iconComponent(p.icon),
                 buildLayout: () => [
                     {
                         key: `nexuscord_${p.id}_panel`,
                         type: T.PANEL,
-                        useTitle: () => (p.id === "home" ? "NexusCord" : t(p.label)),
+                        useTitle: safeTitle(() => (p.id === "home" ? "NexusCord" : t(p.label)), "NexusCord"),
                         buildLayout: () => [
                             {
                                 key: `nexuscord_${p.id}_category`,
@@ -128,7 +168,13 @@ function buildSection(): any {
                                         key: `nexuscord_${p.id}_custom`,
                                         type: T.CUSTOM,
                                         Component: pageComponent(p.id),
-                                        useSearchTerms: () => ["NexusCord", t(p.label), ...(p.searchTerms?.() ?? [])]
+                                        useSearchTerms: () => {
+                                            try {
+                                                return ["NexusCord", t(p.label), ...(p.searchTerms?.() ?? [])].filter(x => typeof x === "string");
+                                            } catch {
+                                                return ["NexusCord"];
+                                            }
+                                        }
                                     }
                                 ]
                             }
@@ -141,11 +187,20 @@ function buildSection(): any {
 
 const bridge = {
     patched: false,
+    /** true once Discord's resolver called us at all (code patch applied) */
+    resolverSeen: false,
     /** Called by Discord's patched layout resolver for EVERY node. */
     buildLayout(node: any): any[] {
         const layout = node.buildLayout();
+        bridge.resolverSeen = true;
         try {
             if (node?.key !== "$Root" || !Array.isArray(layout) || layout.some(s => s?.key === "nexuscord_section")) return layout;
+            // Our nodes render React elements: never inject them unless the React we found is
+            // really React (a wrong module here crashes Discord's whole settings screen).
+            if (!isReactModule(React)) {
+                log.error("React not found - NexusCord settings section disabled to keep Discord stable");
+                return layout;
+            }
             bridge.patched = true;
             const loc = Settings.get().settingsLocation;
             let idx = loc === "top" ? 1 : loc === "bottom" ? layout.length : layout.findIndex(s => s?.key === "utility_section");
@@ -202,7 +257,9 @@ function findSettingsSidebar(): { sidebar: HTMLElement; content: HTMLElement } |
 }
 
 function injectDomFallback() {
-    if (bridge.patched) return;
+    // Only when the resolver code patch never ran: appending into Discord's React-managed
+    // sidebar is a last resort, never combined with the native section.
+    if (bridge.patched || bridge.resolverSeen) return;
     const found = findSettingsSidebar();
     if (!found || found.sidebar.querySelector(".nc-dom-section")) return;
     const { sidebar, content } = found;
@@ -253,7 +310,7 @@ export function openSettings(page: PageId = "home"): void {
             openUserSettings(keyFor(page));
             // Fallback mode: click our injected entry once the settings layer exists
             setTimeout(() => {
-                if (!bridge.patched) {
+                if (!bridge.patched && !bridge.resolverSeen) {
                     injectDomFallback();
                     document.querySelector<HTMLElement>(`.nc-dom-sidebar-item[data-nc-page="${page}"]`)?.click();
                 }

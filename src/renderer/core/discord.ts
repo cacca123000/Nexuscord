@@ -39,8 +39,40 @@ export const ComponentDispatch = lazy(() => findByProps("dispatchToLastSubscribe
 export const RestAPI = lazy(() => find(m => typeof m === "object" && m !== null && typeof m.del === "function" && typeof m.put === "function" && typeof m.patch === "function"));
 export const NavigationRouter = lazy(() => findByProps("transitionTo", "transitionToGuild") ?? findByProps("transitionTo", "replaceWith"));
 export const PremiumUtils = lazy(() => findByProps("canUseEmojisEverywhere"));
-export const React = lazy<any>(() => findByProps("useState", "createElement", "Component"));
-export const ReactDOMClient = lazy<any>(() => findByProps("createRoot", "hydrateRoot"));
+/**
+ * React itself. A props-only filter is NOT enough: Discord's intl runtime also exports
+ * `useState`/`createElement`/`Component`, and its createElement returns `{ locale, ast }`
+ * message objects - rendering one of those crashes the whole settings screen (2.0.1 bug).
+ */
+export const isReactModule = (m: any): boolean => {
+    try {
+        if (!m || typeof m.createElement !== "function" || typeof m.useState !== "function" || typeof m.useEffect !== "function") return false;
+        if (typeof m.Component !== "function" || typeof m.cloneElement !== "function" || typeof m.isValidElement !== "function" || m.Fragment == null) return false;
+        if (typeof m.version !== "string" || !/^\d+\.\d+/.test(m.version)) return false;
+        return m.isValidElement(m.createElement("div", null));
+    } catch {
+        return false;
+    }
+};
+export const React = lazy<any>(() => find(isReactModule));
+/**
+ * react-dom/client. Discord's build is tree-shaken down to `{ createRoot }`, so validate
+ * behaviour instead of prop names: the root must expose render/unmount.
+ */
+export const isReactDomClient = (m: any): boolean => {
+    if (!m || typeof m.createRoot !== "function" || Object.keys(m).length > 6) return false;
+    try {
+        const root = m.createRoot(document.createElement("div"));
+        const ok = typeof root?.render === "function" && typeof root?.unmount === "function";
+        root?.unmount?.();
+        return ok;
+    } catch {
+        return false;
+    }
+};
+export const isReactDom = (m: any): boolean =>
+    !!m && typeof m.createPortal === "function" && typeof m.flushSync === "function" && typeof m.version === "string" && /^\d+\.\d+/.test(m.version);
+export const ReactDOMClient = lazy<any>(() => find(isReactDomClient));
 /** Numeric TS enum (reverse-mapped): ROOT=0, SECTION=1, SIDEBAR_ITEM=2, PANEL=3, CATEGORY=5, CUSTOM=19 (Nov 2026) */
 export const isLayoutTypesEnum = (m: any) =>
     m && typeof m.CUSTOM === "number" && typeof m.SIDEBAR_ITEM === "number" && m[m.CUSTOM] === "CUSTOM" && m[m.SECTION] === "SECTION";

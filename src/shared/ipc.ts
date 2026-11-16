@@ -55,7 +55,8 @@ export const IPC = {
     ADDON_INSTALL: "nexuscord:addon-install",
     ADDON_DELETE: "nexuscord:addon-delete",
     MAIN_EVENT: "nexuscord:main-event",
-    APP_INFO: "nexuscord:app-info"
+    APP_INFO: "nexuscord:app-info",
+    RENDERER_LOG: "nexuscord:renderer-log"
 } as const;
 
 /** Hosts the renderer may reach through the main process (CORS-free) - nothing else. */

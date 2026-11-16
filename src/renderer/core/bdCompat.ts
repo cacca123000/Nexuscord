@@ -17,6 +17,7 @@ import { Patcher } from "./patcher";
 import { Settings } from "./settings";
 import { ThemeEngine } from "./themeEngine";
 import { confirmModal, copyText, openModal, toast } from "./ui";
+import { isReactDom, isReactDomClient, isReactModule } from "./discord";
 import * as Webpack from "./webpack";
 
 const log = new Logger("BdCompat");
@@ -117,9 +118,9 @@ const BdWebpack = {
 // ---------------------------------------------------------------------------
 // React helpers (resolved lazily from Discord's webpack)
 // ---------------------------------------------------------------------------
-export const getReact = () => Webpack.findByProps("useState", "createElement", "Component");
-export const getReactDOM = () => Webpack.findByProps("createPortal", "flushSync") ?? Webpack.findByProps("createPortal", "render");
-const getReactDOMClient = () => Webpack.findByProps("createRoot", "hydrateRoot");
+export const getReact = () => Webpack.find(isReactModule);
+export const getReactDOM = () => Webpack.find(isReactDom) ?? Webpack.findByProps("createPortal", "flushSync");
+const getReactDOMClient = () => Webpack.find(isReactDomClient);
 
 /** Renders whatever a BD plugin's getSettingsPanel() returns into `host`. */
 export function renderForeignPanel(host: HTMLElement, panel: unknown): () => void {

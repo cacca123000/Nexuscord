@@ -9,6 +9,7 @@ import electron, { app, BrowserWindow, BrowserWindowConstructorOptions } from "e
 import { appendFileSync, existsSync, readFileSync, statSync, writeFileSync } from "fs";
 import Module from "module";
 import { dirname, join } from "path";
+import { IPC } from "../shared/ipc";
 import { isPluginEnabled } from "../shared/settings";
 import { initAutoRepatch } from "./autoRepatch";
 import { applyWindowSettings, initFeatures, maybeStyleSplash, registerFeatureIpc, SAFE_MODE } from "./features";
@@ -32,6 +33,12 @@ const log = (...a: unknown[]) => {
     } catch { /* ignore */ }
 };
 process.on("uncaughtException", e => log("UNCAUGHT", e));
+// Renderer errors (NexusCord's own + React crashes) end up in the same log file
+let rendererLines = 0;
+electron.ipcMain?.on?.(IPC.RENDERER_LOG, (_e, text) => {
+    if (++rendererLines > 300) return; // never let a crash loop fill the disk
+    log("[renderer]", String(text).slice(0, 4000));
+});
 const settings = getSettings();
 
 // ---------------------------------------------------------------------------

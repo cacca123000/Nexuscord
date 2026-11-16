@@ -1,6 +1,6 @@
 name: Release NexusCord
 
-# Push a tag like v2.0.1 to publish a release. NexusCord's built-in updater
+# Push a tag like v2.0.2 to publish a release. NexusCord's built-in updater
 # (Tools & Backup > Updates) downloads injector.js / preload.js / renderer.js from the
 # latest release and verifies them against checksums.txt before installing.
 on:

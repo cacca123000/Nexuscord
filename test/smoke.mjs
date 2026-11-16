@@ -63,6 +63,8 @@ const injected = await page.evaluate(() => {
     const sec = res.layout.find(s => s.key === "nexuscord_section");
     return { keys: res.layout.map(s => s.key), items: sec?.layout.map(i => i.key), custom: sec?.layout[0].layout[0].layout[0].layout[0].type };
 });
+const reactPick = await page.evaluate(() => ({ version: NexusCord.Discord.React.version, icon: JSON.stringify(window.$NexusCordSettings.buildLayout({ key: "$Root", buildLayout: () => [] })[0].buildLayout()[0].icon({})).slice(0, 80) }));
+check("React finder skips the intl decoy (2.0.1 settings crash)", reactPick.version === "19.2.3" && !reactPick.icon.includes("locale"), JSON.stringify(reactPick));
 check("settings: NexusCord section injected into Discord's layout", injected.keys.join() === "user_section,nexuscord_section,utility_section" && injected.items.length === 7 && injected.custom === 19, JSON.stringify(injected));
 
 // ---- pages ------------------------------------------------------------------

@@ -19,7 +19,7 @@
 3. Pick your Discord and click **Install / Update**. Discord restarts with NexusCord inside.
 4. Open **User Settings → NexusCord**, or press **Ctrl + Alt + N**. A short setup wizard appears on first launch. **Ctrl + Shift + P** opens the command palette anywhere.
 
-Discord updates are re-patched automatically while NexusCord runs. If NexusCord doesn't appear, check `%APPDATA%\NexusCord\nexuscord.log`. **Repair** in the installer fixes anything else. If a plugin or theme ever breaks Discord, NexusCord restarts in **safe mode** by itself after two failed starts.
+Discord updates are re-patched automatically while NexusCord runs. If NexusCord doesn't appear or Discord shows its "Well, this is awkward" screen, check `%APPDATA%\NexusCord\nexuscord.log`: NexusCord writes its own errors and any React crash there. **Repair** in the installer fixes anything else. If a plugin or theme ever breaks Discord, NexusCord restarts in **safe mode** by itself after two failed starts.
 
 ## What's inside Discord's settings
 
@@ -76,7 +76,7 @@ npm run test:installer   # installer UI end to end
 npm run test:real        # verifies every hook against the REAL Discord web client
 ```
 
-Releases: push a tag like `v2.0.1`. `.github/workflows/release.yml` builds on Windows and publishes the exe plus `checksums.txt`. The in-app updater installs a release only after verifying those checksums.
+Releases: push a tag like `v2.0.2`. `.github/workflows/release.yml` builds on Windows and publishes the exe plus `checksums.txt`. The in-app updater installs a release only after verifying those checksums.
 
 ## How it works
 
@@ -87,4 +87,4 @@ Releases: push a tag like `v2.0.1`. `.github/workflows/release.yml` builds on Wi
 
 ### Verified against the real Discord client
 
-`test/real/` loads Discord's actual web client (discord.com, about 7,000 JS chunks cached in `.cache/`), injects NexusCord exactly like the preload does, and runs 63 checks. These cover every store and module the features rely on, the settings injection through Discord's real layout resolver, the token guard and all 52 plugins starting. Logged-in UI and native Windows parts (installer window, Windows Hello, media session) can't be exercised in CI.
+`test/real/` loads Discord's actual web client (discord.com, about 7,000 JS chunks cached in `.cache/`), injects NexusCord exactly like the preload does, and runs 64 checks. These cover every store and module the features rely on, the settings injection through Discord's real layout resolver, the token guard and all 52 plugins starting. `settings-render.mjs` then renders Discord's **real User Settings screen** with NexusCord inside and checks that it opens without crashing, that the NexusCord sidebar entries are there and that a NexusCord page renders. Logged-in UI and native Windows parts (installer window, Windows Hello, media session) can't be exercised in CI.

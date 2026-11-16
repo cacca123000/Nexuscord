@@ -28,8 +28,17 @@
     check("PremiumUtils canUseEmojisEverywhere", () => typeof W.findByProps("canUseEmojisEverywhere")?.canUseEmojisEverywhere === "function");
     check("PremiumUtils canUseAnimatedEmojis", () => typeof W.findByProps("canUseEmojisEverywhere")?.canUseAnimatedEmojis === "function" || "missing");
     check("PremiumUtils canUseStickersEverywhere", () => typeof W.findByProps("canUseEmojisEverywhere")?.canUseStickersEverywhere === "function" || "missing");
-    check("React", () => typeof W.findByProps("useState", "createElement", "Component")?.createElement === "function");
-    check("ReactDOM client", () => typeof W.findByProps("createRoot", "hydrateRoot")?.createRoot === "function");
+    check("React (real React, not the intl runtime)", () => {
+        const R = NexusCord.Discord.React.__nc_resolved;
+        const el = R?.createElement("div", null);
+        return (R?.isValidElement(el) && el.$$typeof === Symbol.for("react.transitional.element") && /^\d+\./.test(R.version)) || `got ${JSON.stringify(el)}`;
+    });
+    check("settings icons render React elements", () => {
+        const sec = window.$NexusCordSettings.buildLayout({ key: "$Root", buildLayout: () => [] })[0];
+        const bad = sec.buildLayout().filter(i => !NexusCord.Discord.React.isValidElement(i.icon({ size: "refresh_sm" })));
+        return bad.length === 0 || `invalid icons: ${bad.map(b => b.key)}`;
+    });
+    check("ReactDOM client", () => typeof NexusCord.Discord.ReactDOMClient.__nc_resolved?.createRoot(document.createElement("div"))?.render === "function");
     check("Settings layout types (CUSTOM=19)", () => W.find(m => m && typeof m.CUSTOM === "number" && m[m.CUSTOM] === "CUSTOM" && m[m.SECTION] === "SECTION")?.CUSTOM === 19);
     check("LocaleStore.locale", () => typeof store("LocaleStore")?.locale === "string");
     check("PresenceStore.getState().clientStatuses", () => typeof store("PresenceStore")?.getState?.()?.clientStatuses === "object" || "missing");

@@ -200,12 +200,21 @@ export function lazy<T = any>(getter: () => T | undefined): T {
             return undefined;
         }
     })());
+    const bound = new Map<PropertyKey, { fn: Function; b: Function }>();
     return new Proxy(function () {} as any, {
         get: (_t, key) => {
             const v = resolve() as any;
             if (key === "__nc_resolved") return v;
             const r = v?.[key];
-            return typeof r === "function" ? r.bind(v) : r;
+            if (typeof r !== "function") return r;
+            // Classes (e.g. React.Component) must keep their prototype for `extends`
+            if (r.prototype && Object.getOwnPropertyNames(r.prototype).length > 1) return r;
+            // Stable identity across reads (bind() would create a new function every time)
+            const c = bound.get(key);
+            if (c && c.fn === r) return c.b;
+            const b = r.bind(v);
+            bound.set(key, { fn: r, b });
+            return b;
         },
         has: (_t, key) => key in ((resolve() as any) ?? {}),
         apply: (_t, thisArg, args) => (resolve() as any)?.apply(thisArg, args),

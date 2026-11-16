@@ -19,9 +19,19 @@
         D.subscribe("USER_SETTINGS_LOCALE_OVERRIDE", a => { store.locale = a.locale; store.l.forEach(f => f()); });
         exports.default = store;
     },
+    99: (module, exports) => {
+        // Decoy: Discord's intl runtime ALSO exports useState/createElement/Component, but its
+        // createElement returns { locale, ast } - picking it as React crashed settings in 2.0.1.
+        exports.useState = () => {}; exports.useEffect = () => {}; exports.Component = class {};
+        exports.createElement = () => ({ locale: "en-US", ast: [] });
+    },
     102: (module, exports) => {
-        // React-like stub (just enough for findByProps)
-        exports.useState = () => {}; exports.createElement = () => ({}); exports.Component = class {};
+        // React-like stub: just enough to pass NexusCord's real-React validation
+        const EL = Symbol.for("react.transitional.element");
+        exports.version = "19.2.3"; exports.Fragment = Symbol.for("react.fragment");
+        exports.createElement = (type, props, ...children) => ({ $$typeof: EL, type, props: { ...props, children } });
+        exports.isValidElement = o => !!o && o.$$typeof === EL; exports.cloneElement = e => ({ ...e });
+        exports.useState = () => {}; exports.Component = class {};
         exports.useRef = () => ({ current: null }); exports.useEffect = () => {};
     },
     103: (module, exports) => {
@@ -71,5 +81,5 @@
         class RelationshipStore { constructor() { this._dispatchToken = "8"; } getName() { return "RelationshipStore"; } isFriend(id) { return id === "444"; } isBlocked(id) { return id === "666"; } }
         exports.P = new PermissionStore(); exports.G = new GuildChannelStore(); exports.R = new GuildRoleStore(); exports.Rel = new RelationshipStore();
     },
-    999: (module, exports, req) => { [100, 101, 102, 103, 104, 105, 106, 107, 109].forEach(id => req(id)); window.__discordBooted = true; }
+    999: (module, exports, req) => { [99, 100, 101, 102, 103, 104, 105, 106, 107, 109].forEach(id => req(id)); window.__discordBooted = true; }
 }, req => req(999)]);

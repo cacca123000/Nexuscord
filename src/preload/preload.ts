@@ -90,6 +90,7 @@ const NexusCordNative = {
             ipcRenderer.sendSync(IPC.APP_INFO),
         safeMode: (): boolean => ipcRenderer.sendSync(IPC.SAFE_MODE),
         bootOk: () => ipcRenderer.invoke(IPC.BOOT_OK),
+        log: (text: string) => ipcRenderer.send(IPC.RENDERER_LOG, String(text).slice(0, 4000)),
         windowsHello: (message: string): Promise<boolean> => ipcRenderer.invoke(IPC.WINDOWS_HELLO, String(message)),
         mediaSession: (): Promise<{ app?: string; title?: string; artist?: string; album?: string; status?: string; position?: number; duration?: number } | null> =>
             ipcRenderer.invoke(IPC.MEDIA_SESSION),

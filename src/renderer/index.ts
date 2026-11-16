@@ -6,7 +6,7 @@ import { initBdCompat } from "./core/bdCompat";
 import { setStyle, onDomReady } from "./core/dom";
 import { Flux, initFlux, subscribe } from "./core/flux";
 import { I18n, initI18n } from "./core/i18n";
-import { Logger } from "./core/logger";
+import { installCrashReporter, Logger } from "./core/logger";
 import { Native } from "./core/native";
 import { Patcher } from "./core/patcher";
 import { isSafeMode, PluginManager, registerPlugin, startEnabledPlugins } from "./core/pluginManager";
@@ -37,6 +37,7 @@ function boot() {
     if ((window as any).NexusCord) return; // injected twice (e.g. reload) - never double-hook
     if (window.top !== window) return; // only Discord's main frame, never iframes
     const started = performance.now();
+    safe("crash reporter", installCrashReporter);
 
     // Synchronous, must win the race against Discord's webpack runtime
     safe("webpack", initWebpack);
