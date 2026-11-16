@@ -131,7 +131,7 @@ export const enCore = {
     "plugin.linkShield.opt.unshorten": "Resolve shortened links before opening",
     "plugin.linkShield.opt.executableGuard": "Warn before downloading executables",
     "plugin.windowTweaks.name": "WindowTweaks",
-    "plugin.windowTweaks.desc": "Fixes titlebar dragging, adds Windows acrylic transparency and \"Copy ID / Raw JSON\" context menu items.",
+    "plugin.windowTweaks.desc": "Keeps the custom titlebar draggable and can make Discord's panels translucent for Mica / Acrylic.",
     "plugin.windowTweaks.opt.fixDrag": "Fix titlebar window dragging",
     "plugin.windowTweaks.opt.acrylic": "Acrylic transparency (Windows 11)",
     "plugin.windowTweaks.opt.contextMenu": "Add Copy ID / Raw JSON to context menus",

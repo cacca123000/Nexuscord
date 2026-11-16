@@ -93,7 +93,8 @@ test("injector boots Discord with NexusCord hooks", async () => {
         assert.equal(electron.app.appPath, asar);
         assert.equal(electron.app.name, "Discord");
         assert.match(switches["js-flags"], /--max-old-space-size=512/);
-        assert.ok("process-per-site" in switches && "enable-gpu-rasterization" in switches && "disable-background-timer-throttling" in switches);
+        assert.ok("process-per-site" in switches && "enable-gpu-rasterization" in switches);
+        assert.ok(!("disable-background-timer-throttling" in switches), "throttling stays enabled by default (saves CPU/RAM when minimized)");
 
         // app ready -> session hooks. Discord registered its listener BEFORE ready in this
         // mock, so re-register the way Discord does after ready:

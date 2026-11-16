@@ -1,6 +1,6 @@
 {
   "name": "nexuscord",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "NexusCord - lightweight all-in-one Discord desktop client mod (Vencord-style core, BetterDiscord theme/plugin compatibility, LinkShield, Low-RAM engine).",
   "private": true,
   "license": "GPL-3.0-or-later",
@@ -14,7 +14,8 @@
     "inject": "node dist/installer/installer.cjs --cli install",
     "uninject": "node dist/installer/installer.cjs --cli uninstall",
     "test": "node --test test/unit.test.mjs test/injector.test.mjs && node test/smoke.mjs",
-    "test:installer": "node test/installer-ui.mjs"
+    "test:installer": "node test/installer-ui.mjs",
+    "test:real": "node test/real/scanAssets.mjs && node test/real/verify.mjs"
   },
   "engines": {
     "node": ">=20.12"
@@ -24,6 +25,7 @@
     "esbuild": "^0.28.2",
     "fflate": "^0.8.3",
     "postject": "^1.0.0-alpha.6",
+    "resedit": "^3.1.1",
     "typescript": "^7.0.2"
   }
 }

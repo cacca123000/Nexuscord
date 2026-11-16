@@ -88,7 +88,7 @@ export const MESSAGE_SELECTOR = 'li[id^="chat-messages-"]';
 
 export function parseMessageElement(el: Element | null): { channelId: string; messageId: string } | null {
     const li = el?.closest?.('[id^="chat-messages-"]');
-    const m = li && /^chat-messages-(\d+)-(\d+)$/.exec(li.id);
+    const m = li && /^chat-messages-(\w+)-(\w+)$/.exec(li.id);
     return m ? { channelId: m[1], messageId: m[2] } : null;
 }
 

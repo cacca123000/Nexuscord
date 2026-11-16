@@ -10,7 +10,7 @@ const accessories = new Map<string, Map<string, Factory>>(); // messageId -> key
 let started = false;
 
 function attach(li: Element) {
-    const m = /^chat-messages-\d+-(\d+)$/.exec(li.id);
+    const m = /^chat-messages-\w+-(\w+)$/.exec(li.id);
     if (!m) return;
     const map = accessories.get(m[1]);
     const content = li.querySelector(`#message-content-${m[1]}`) ?? li.querySelector('[id^="message-content-"]');

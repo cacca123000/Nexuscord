@@ -106,13 +106,25 @@ export function openPluginConfig(p: NexusPlugin) {
 }
 
 const CATEGORY_ICON: Record<string, string> = { appearance: "🎨", privacy: "🛡️", chat: "💬", media: "🎧", performance: "⚡", utility: "🔧", fun: "🎉" };
+/** A distinct icon per feature (falls back to the category icon). */
+const PLUGIN_ICON: Record<string, string> = {
+    customizer: "🎛️", customFonts: "🔤", backgroundImage: "🖼️", themeScheduler: "🌗", windowTweaks: "🪟", linkShield: "🔗", noTrack: "🚫", appLock: "🔒",
+    scamGuard: "🎣", pluginScanner: "🧪", silentTyping: "🤫", uploadPrivacy: "📍", clearUrlsOutgoing: "🧹", streamerPlus: "📺", translate: "🌍",
+    messageLogger: "🗂️", bookmarks: "🔖", scheduledMessages: "⏰", textSnippets: "✂️", keywordAlerts: "🔔", betterTimestamps: "🕒", timezoneConverter: "🌐",
+    accountAge: "🎂", imageViewer: "🔍", betterCodeBlocks: "💻", doubleClickActions: "🖱️", localNicknames: "🏷️", pinDms: "📌", hideBlocked: "🙈",
+    readAllButton: "✅", platformIndicators: "📱", whoReacted: "👀", relationshipNotifier: "💔", fakeNitro: "💎", volumeBooster: "🔊", customSounds: "🎵",
+    pictureInPicture: "🧷", customRpc: "🎮", musicPresence: "🎶", mediaDownloader: "⬇️", emojiCloner: "😀", lowRamOptimizer: "🧠", declutter: "🧽",
+    liteMode: "🪶", dataSaver: "📉", commandPalette: "⌨️", copyTools: "📋", showHiddenChannels: "🔐", safeModeGuard: "🛟", fancyText: "✨",
+    wrapped: "🎁", friendOnline: "🟢"
+};
+const iconOf = (p: NexusPlugin) => PLUGIN_ICON[p.id] ?? CATEGORY_ICON[p.category] ?? "✨";
 
 export function PluginCard(p: NexusPlugin): Node {
     const on = isEnabled(p.id);
     return (
         <div className={["nc-card interactive", on && "on"]} data-plugin={p.id}>
             <div className="nc-card-head">
-                <div className="nc-card-icon">{CATEGORY_ICON[p.category] ?? "✨"}</div>
+                <div className="nc-card-icon">{iconOf(p)}</div>
                 <div className="nc-card-title">{t(p.name)}</div>
                 {p.required ? <span className="nc-tag accent">{t("plugins.core")}</span> : <Switch checked={on} label={t(p.name)} onChange={v => setPluginEnabled(p.id, v)} />}
             </div>
@@ -144,7 +156,7 @@ export function PluginBlock(id: string): Node {
             return (
                 <>
                     <div className="nc-card-head" style="align-items:center">
-                        <div className="nc-card-icon">{CATEGORY_ICON[p.category] ?? "✨"}</div>
+                        <div className="nc-card-icon">{iconOf(p)}</div>
                         <div style="flex:1;min-width:0">
                             <div className="nc-card-title">{t(p.name)}</div>
                             <div className="nc-card-desc">{t(p.description)}</div>

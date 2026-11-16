@@ -40,6 +40,8 @@ $g = $form.CreateGraphics(); $scale = $g.DpiX / 96.0; $g.Dispose()
 $form.ClientSize = New-Object System.Drawing.Size([int](520 * $scale), [int](380 * $scale))
 $form.BackColor = [System.Drawing.Color]::FromArgb(14, 15, 22)
 $form.ShowInTaskbar = $true
+$iconPath = Join-Path $Dir 'icon.ico'
+if (Test-Path $iconPath) { $form.Icon = New-Object System.Drawing.Icon($iconPath) }
 
 $form.Add_HandleCreated({
     # Windows 11: rounded corners (DWMWA_WINDOW_CORNER_PREFERENCE=33, ROUND=2) + dark mode (20)

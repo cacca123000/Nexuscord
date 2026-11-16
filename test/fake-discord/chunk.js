@@ -36,12 +36,24 @@
         exports.Z = new MessageStore();
     },
     105: (module, exports) => {
-        exports.sendMessage = (channelId, msg) => { window.__sent = { channelId, msg }; return Promise.resolve(); };
+        exports.sendMessage = (channelId, msg, w, opts) => { (window.__sentAll ||= []).push({ channelId, msg, opts }); window.__sent = { channelId, msg }; return Promise.resolve(); };
         exports.editMessage = () => {};
+        exports.startEditMessage = (c, m, content) => (window.__editing = { c, m, content });
+        exports.sendStickers = () => {};
+    },
+    // Discord 2025+ settings layout helpers - written as METHOD SHORTHAND like the real client
+    108(module, exports) {
+        var i, r = ((i = {})[i.ROOT = 0] = "ROOT", i[i.SECTION = 1] = "SECTION", i[i.SIDEBAR_ITEM = 2] = "SIDEBAR_ITEM", i[i.PANEL = 3] = "PANEL", i[i.CATEGORY = 5] = "CATEGORY", i[i.CUSTOM = 19] = "CUSTOM", i);
+        exports.Z6 = r;
+        exports.hl = function (t) { return function t(n) { if ("buildLayout" in n && "function" == typeof n.buildLayout) { let u = n.buildLayout().map(t), { buildLayout: e, ...r } = n, i = { ...r, layout: u }; return u.forEach(t => t.parent = i), i } return n }(t) };
+    },
+    109: (module, exports) => {
+        exports.dispatchToLastSubscribed = (ev, data) => (window.__inserted = data?.rawText);
     },
     106: (module, exports) => {
         const channels = {
             c1: { id: "c1", name: "general", guild_id: "g1", type: 0 },
+            dm1: { id: "dm1", name: "", type: 1, recipients: ["333"] },
             "1180000000000000000": { id: "1180000000000000000", name: "mods-only", guild_id: "g1", type: 0, topic: "Moderator coordination", rateLimitPerUser: 30,
                       permissionOverwrites: { g1: { id: "g1", type: 0, allow: 0n, deny: 1024n }, r1: { id: "r1", type: 0, allow: 1024n, deny: 0n } } }
         };
@@ -56,7 +68,8 @@
             getChannels(g) { return { SELECTABLE: [{ channel: { id: "c1", name: "general", guild_id: "g1", type: 0 }, comparator: 0 }], VOCAL: [] }; } }
         class GuildRoleStore { constructor() { this._dispatchToken = "7"; } getName() { return "GuildRoleStore"; }
             getRole(g, id) { return { r1: { id: "r1", name: "Moderator", colorString: "#3ddc97" } }[id]; } }
-        exports.P = new PermissionStore(); exports.G = new GuildChannelStore(); exports.R = new GuildRoleStore();
+        class RelationshipStore { constructor() { this._dispatchToken = "8"; } getName() { return "RelationshipStore"; } isFriend(id) { return id === "444"; } isBlocked(id) { return id === "666"; } }
+        exports.P = new PermissionStore(); exports.G = new GuildChannelStore(); exports.R = new GuildRoleStore(); exports.Rel = new RelationshipStore();
     },
-    999: (module, exports, req) => { [100, 101, 102, 103, 104, 105, 106, 107].forEach(id => req(id)); window.__discordBooted = true; }
+    999: (module, exports, req) => { [100, 101, 102, 103, 104, 105, 106, 107, 109].forEach(id => req(id)); window.__discordBooted = true; }
 }, req => req(999)]);

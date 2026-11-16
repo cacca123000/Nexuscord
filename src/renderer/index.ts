@@ -12,6 +12,7 @@ import { Patcher } from "./core/patcher";
 import { isSafeMode, PluginManager, registerPlugin, startEnabledPlugins } from "./core/pluginManager";
 import { Settings } from "./core/settings";
 import * as Discord from "./core/discord";
+import { getLastTarget, registerMenuItem } from "./core/contextMenu";
 import { registerPages } from "./core/pages";
 import { mountPage, initSettingsUI, openSettings } from "./core/settingsUI";
 import { openOnboarding } from "./core/onboarding";
@@ -56,6 +57,7 @@ function boot() {
         Plugins: PluginManager,
         Themes: ThemeEngine,
         Discord,
+        ContextMenu: { registerMenuItem, getLastTarget },
         openSettings,
         openOnboarding,
         mountPage,

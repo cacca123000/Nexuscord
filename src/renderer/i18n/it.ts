@@ -132,7 +132,7 @@ const itCore: Record<keyof typeof enCore, string> = {
     "plugin.linkShield.opt.unshorten": "Risolvi i link accorciati prima di aprirli",
     "plugin.linkShield.opt.executableGuard": "Avvisa prima di scaricare file eseguibili",
     "plugin.windowTweaks.name": "Ritocchi finestra",
-    "plugin.windowTweaks.desc": "Corregge il trascinamento della barra del titolo, aggiunge la trasparenza acrilica di Windows e le voci \"Copia ID / JSON grezzo\" nei menu contestuali.",
+    "plugin.windowTweaks.desc": "Mantiene trascinabile la barra del titolo e può rendere traslucidi i pannelli di Discord per Mica / Acrylic.",
     "plugin.windowTweaks.opt.fixDrag": "Correggi il trascinamento della finestra",
     "plugin.windowTweaks.opt.acrylic": "Trasparenza acrilica (Windows 11)",
     "plugin.windowTweaks.opt.contextMenu": "Aggiungi Copia ID / JSON grezzo ai menu contestuali",

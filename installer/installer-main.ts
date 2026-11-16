@@ -423,6 +423,7 @@ function extractHostFiles(): string | null {
     const dir = join(tmpdir(), `NexusCordInstaller-${NEXUSCORD_VERSION}`);
     const files = [
         "host.ps1",
+        "icon.ico",
         "Microsoft.Web.WebView2.Core.dll",
         "Microsoft.Web.WebView2.WinForms.dll",
         "x64/WebView2Loader.dll",

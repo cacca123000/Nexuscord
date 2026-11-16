@@ -16,6 +16,7 @@ import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync, copyFileS
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { unzipSync } from "fflate";
+import { buildIco } from "./icon.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DIST = join(ROOT, "dist");
@@ -53,6 +54,8 @@ await esbuild.build({
     logLevel: "warning"
 });
 copyFileSync(join(ROOT, "installer", "host.ps1"), join(OUT_DIR, "host.ps1"));
+const ICO = buildIco();
+writeFileSync(join(OUT_DIR, "icon.ico"), ICO);
 
 // ---------------------------------------------------------------------------
 // Download helpers (cached, retried)
@@ -135,6 +138,7 @@ const assets = {
     "preload.js": join(DIST, "preload.js"),
     "renderer.js": join(DIST, "renderer.js")
 };
+assets["icon.ico"] = join(OUT_DIR, "icon.ico");
 if (webview2) {
     assets["host.ps1"] = join(OUT_DIR, "host.ps1");
     for (const f of webview2.files) assets[f] = join(webview2.dir, f);
@@ -183,6 +187,38 @@ function setGuiSubsystem(file) {
     writeFileSync(file, buf);
 }
 
+/** Replaces node.exe's icon + version info with NexusCord's (pure JS, via resedit). */
+async function brandExecutable(file) {
+    const ResEdit = await import("resedit");
+    const exe = ResEdit.NtExecutable.from(readFileSync(file), { ignoreCert: true });
+    const res = ResEdit.NtExecutableResource.from(exe);
+    const icons = ResEdit.Data.IconFile.from(ICO).icons.map(i => i.data);
+    const groups = ResEdit.Resource.IconGroupEntry.fromEntries(res.entries);
+    const target = groups[0] ?? { id: 1, lang: 1033 };
+    ResEdit.Resource.IconGroupEntry.replaceIconsForResource(res.entries, target.id, target.lang, icons);
+    const [vi] = ResEdit.Resource.VersionInfo.fromEntries(res.entries);
+    if (vi) {
+        const [maj, min, pat] = pkg.version.split(".").map(Number);
+        const lang = vi.getAllLanguagesForStringValues()[0] ?? { lang: 1033, codepage: 1200 };
+        vi.setFileVersion(maj, min, pat, 0, lang.lang);
+        vi.setProductVersion(maj, min, pat, 0, lang.lang);
+        vi.setStringValues(lang, {
+            CompanyName: "NexusCord",
+            FileDescription: "NexusCord Installer",
+            ProductName: "NexusCord",
+            InternalName: "NexusCord-Installer",
+            OriginalFilename: "NexusCord-Installer.exe",
+            LegalCopyright: "GPL-3.0-or-later",
+            FileVersion: pkg.version,
+            ProductVersion: pkg.version,
+            Comments: "Installs NexusCord into Discord"
+        });
+        vi.outputToResourceEntries(res.entries);
+    }
+    res.outputResource(exe);
+    writeFileSync(file, Buffer.from(exe.generate()));
+}
+
 // ---------------------------------------------------------------------------
 // 6. Inject
 // ---------------------------------------------------------------------------
@@ -190,6 +226,8 @@ step("Injecting payload into NexusCord-Installer.exe");
 rmSync(EXE, { force: true });
 copyFileSync(nodeExe, EXE);
 console.log(`  signature ${stripSignature(EXE) ? "stripped" : "not present"}`);
+await brandExecutable(EXE);
+console.log("  icon + version info applied");
 const { inject } = await import("postject");
 await inject(EXE, "NODE_SEA_BLOB", readFileSync(blob), { sentinelFuse: SEA_FUSE, overwrite: true });
 setGuiSubsystem(EXE);
