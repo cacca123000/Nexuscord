@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p installer/tsconfig.json",
     "verify": "npm run typecheck && npm run build",
     "inject": "node dist/installer/installer.cjs --cli install",
-    "uninject": "node dist/installer/installer.cjs --cli uninstall"
+    "uninject": "node dist/installer/installer.cjs --cli uninstall",
+    "test": "node test/smoke.mjs"
   },
   "engines": {
     "node": ">=20.12"
