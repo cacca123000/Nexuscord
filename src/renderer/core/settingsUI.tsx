@@ -459,7 +459,7 @@ function PerformanceTab(registerTimer: (stop: () => void) => void) {
 // ---------------------------------------------------------------------------
 
 /** Mounts the full NexusCord panel into `host`. Returns a cleanup function. */
-export function mountPanel(host: HTMLElement, initialTab: PanelTab = "plugins", showTabs = true): () => void {
+export function mountPanel(host: HTMLElement, initialTab: PanelTab = "plugins", showTabs = true, onClose?: () => void): () => void {
     const state: PanelState = { tab: initialTab, search: "", filter: "all" };
     let stopTimers: (() => void)[] = [];
     const root = <div className="nc-root nc-panel" />;
@@ -483,6 +483,8 @@ export function mountPanel(host: HTMLElement, initialTab: PanelTab = "plugins", 
                         <h1>{t("app.name")}</h1>
                         <p>{t("app.tagline")} · v{NEXUSCORD_VERSION}</p>
                     </div>
+                    <span className="nc-spacer" />
+                    {onClose ? <Button variant="icon" title={t("common.close")} icon={Icons.close} onClick={onClose} /> : null}
                 </div>
                 {showTabs ? (
                     <div className="nc-tabs" role="tablist">
@@ -542,9 +544,9 @@ let panelModal: { close: () => void } | null = null;
 export function openPanelModal(tab: PanelTab = "plugins"): void {
     panelModal?.close();
     const host = <div />;
-    const cleanup = mountPanel(host, tab);
+    const cleanup = mountPanel(host, tab, true, () => panelModal?.close());
     panelModal = openModal({ title: t("app.name"), body: host, wide: true, buttons: [], onClose: () => (cleanup(), (panelModal = null)) });
-    panelModal && host.closest(".nc-modal")?.querySelector(".nc-modal-head")?.remove();
+    host.closest(".nc-modal")?.querySelector(".nc-modal-head")?.remove();
 }
 
 // ---------------------------------------------------------------------------

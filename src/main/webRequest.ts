@@ -109,7 +109,7 @@ export function stripCsp(headers: Record<string, string | string[]>): void {
 const TRACKING_RE = [
     /^https:\/\/(?:[\w-]+\.)?discord(?:app)?\.com\/api\/v\d+\/(?:science|track|metrics)(?:[/?]|$)/,
     /^https:\/\/(?:[\w-]+\.)?discord(?:app)?\.com\/error-reporting-proxy\//,
-    /^https:\/\/(?:[\w-]+\.)?sentry\.io\//
+    /^https:\/\/(?:[\w-]+\.)*sentry\.io\//
 ];
 
 export function isTrackingUrl(url: string): boolean {

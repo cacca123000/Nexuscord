@@ -158,7 +158,12 @@ export function registerIpc(): void {
     ipcMain.handle(IPC.SET_ACRYLIC, (e, enabled: boolean) => {
         const win = BrowserWindow.fromWebContents(e.sender);
         if (!win || process.platform !== "win32" || !win.setBackgroundMaterial) return false;
-        win.setBackgroundMaterial(enabled ? "acrylic" : "none");
+        try {
+            win.setBackgroundColor(enabled ? "#00000000" : "#313338");
+            win.setBackgroundMaterial(enabled ? "acrylic" : "none");
+        } catch {
+            return false;
+        }
         return true;
     });
 

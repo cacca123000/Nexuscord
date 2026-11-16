@@ -96,6 +96,11 @@ export function setStyle(id: string, css: string | null): void {
     if (el.textContent !== css) el.textContent = css;
     // Always keep our styles last so they win the cascade
     const parent = document.head ?? document.documentElement;
+    if (!parent) {
+        // Injected before the document exists: retry once the DOM is ready
+        document.addEventListener("DOMContentLoaded", () => setStyle(id, styleEls.get(id)?.textContent ?? null), { once: true });
+        return;
+    }
     if (el.parentNode !== parent || el !== parent.lastElementChild) parent.appendChild(el);
 }
 

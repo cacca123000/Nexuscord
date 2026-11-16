@@ -38,6 +38,9 @@ function boot() {
     safe("flux", initFlux);
     safe("i18n", initI18n);
     for (const p of builtInPlugins) safe(`register ${p.id}`, () => registerPlugin(p));
+    // Plugins start immediately (DOM work inside them waits for DOMContentLoaded)
+    // so network/Sentry/webpack hooks are in place before Discord boots.
+    safe("plugins", startEnabledPlugins);
 
     (window as any).NexusCord = {
         version: NEXUSCORD_VERSION,
@@ -56,7 +59,6 @@ function boot() {
         setStyle("nexuscord-core", coreCss);
         safe("themes", initThemeEngine);
         safe("settings UI", initSettingsUI);
-        safe("plugins", startEnabledPlugins);
 
         // BetterDiscord plugins expect Discord to be fully loaded
         let bdStarted = false;
