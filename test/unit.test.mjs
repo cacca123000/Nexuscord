@@ -82,3 +82,12 @@ test("settings normalization", () => {
     assert.ok(isPluginEnabled(s, "noTrack"));
     assert.ok(!isPluginEnabled(s, "messageLogger"));
 });
+
+import { toFunctionExpression } from "../src/shared/patchUtils.ts";
+test("code patch: method-shorthand factories become valid expressions", () => {
+    for (const src of ['247775(e,t,n){"use strict";return 1}', 'abc(e){return 2}', 'function(e){return 3}', "(e,t)=>4", "async foo(e){return 5}"]) {
+        const fn = (0, eval)("0," + toFunctionExpression(src));
+        assert.equal(typeof fn, "function", src);
+    }
+    assert.equal((0, eval)("0," + toFunctionExpression('247775(e,t,n){return e+t+n}'))(1, 2, 3), 6);
+});

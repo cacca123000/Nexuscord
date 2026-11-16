@@ -127,6 +127,7 @@ export default definePlugin({
     id: ID,
     name: "plugin.lowRamOptimizer.name",
     description: "plugin.lowRamOptimizer.desc",
+    category: "performance",
     authors: ["NexusCord"],
     options: {
         pauseOnBlur: { type: "boolean", label: "plugin.lowRamOptimizer.opt.pauseOnBlur", default: false },

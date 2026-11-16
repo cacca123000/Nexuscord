@@ -496,8 +496,20 @@ function evaluate(p: ExternalPlugin): void {
     p.instance?.load?.();
 }
 
+let startGuard: ((p: ExternalPlugin) => boolean) | null = null;
+/** Lets the plugin scanner veto starting a (high-risk) BetterDiscord plugin. */
+export function setStartGuard(fn: ((p: ExternalPlugin) => boolean) | null) {
+    startGuard = fn;
+}
+
 function startExternal(p: ExternalPlugin) {
     if (p.running || !p.instance) return;
+    try {
+        if (startGuard && !startGuard(p)) {
+            p.error = t("plugin.pluginScanner.blockedShort");
+            return;
+        }
+    } catch { /* guard failure never blocks */ }
     try {
         p.instance.start?.();
         p.running = true;

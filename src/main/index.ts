@@ -11,6 +11,7 @@ import Module from "module";
 import { dirname, join } from "path";
 import { isPluginEnabled } from "../shared/settings";
 import { initAutoRepatch } from "./autoRepatch";
+import { applyWindowSettings, initFeatures, maybeStyleSplash, registerFeatureIpc, SAFE_MODE } from "./features";
 import { consumeAllowOnce, isHttpUrl, notifyLinkBlocked, originalPreloads, registerIpc } from "./ipc";
 import { initLinkShieldMain, isPhishingHost } from "./linkShieldMain";
 import { ensureDataDirs } from "./paths";
@@ -42,6 +43,7 @@ function applyCommandLine(): void {
 //    screenshare live in Discord's preload, so it MUST keep running).
 // ---------------------------------------------------------------------------
 const PRELOAD_PATH = join(__dirname, "preload.js");
+let startHandled = false;
 
 const PatchedBrowserWindow = new Proxy(electron.BrowserWindow, {
     construct(target, args: [BrowserWindowConstructorOptions?], newTarget) {
@@ -54,19 +56,36 @@ const PatchedBrowserWindow = new Proxy(electron.BrowserWindow, {
             // Our preload needs Node's `fs` to read renderer.js
             prefs.sandbox = false;
 
-            const s = getSettings();
-            if (
-                process.platform === "win32" &&
-                options.title &&
-                isPluginEnabled(s, "windowTweaks") &&
-                s.plugins.windowTweaks?.acrylic === true
-            ) {
-                options.backgroundMaterial = "acrylic";
+            const w = getSettings().window;
+            if (process.platform === "win32" && options.title && w.material !== "none") {
+                options.backgroundMaterial = w.material;
                 options.backgroundColor = "#00000000";
             }
         }
         const win = Reflect.construct(target, args, newTarget) as BrowserWindow;
         if (original) originalPreloads.set(win.webContents.id, original);
+        try {
+            maybeStyleSplash(win);
+            if (original && options?.title) {
+                const s = getSettings();
+                if (s.window.opacity < 1 || s.window.material !== "none" || s.window.customIcon) applyWindowSettings(win);
+                // Start minimized: swallow the first show() of the main window
+                if (s.performance.startMinimized && !startHandled) {
+                    startHandled = true;
+                    const origShow = win.show.bind(win);
+                    let first = true;
+                    win.show = () => {
+                        if (first) {
+                            first = false;
+                            return;
+                        }
+                        origShow();
+                    };
+                }
+            }
+        } catch (e) {
+            log("window customisation failed", e);
+        }
         return win;
     }
 });
@@ -140,7 +159,9 @@ function loadDiscord(): void {
     const name = String(pkg.productName ?? pkg.name ?? app.name).trim();
     app.setAppPath(asarPath);
     app.name = name;
-    app.setPath("userData", join(app.getPath("appData"), name));
+    // Multi-account: `--nc-profile=work` gets its own Discord data folder (+ Discord's --multi-instance)
+    const profile = /^--nc-profile=([\w.-]{1,64})$/.exec(process.argv.find(a => a.startsWith("--nc-profile=")) ?? "")?.[1];
+    app.setPath("userData", join(app.getPath("appData"), profile ? `${name}-${profile}` : name));
 
     if (require.main) require.main.filename = entry;
     log(`Loading Discord from ${asarPath} (${name})`);
@@ -156,6 +177,8 @@ function main(): void {
     }
     patchElectronExports();
     registerIpc();
+    registerFeatureIpc();
+    if (SAFE_MODE) log("Safe mode active");
 
     app.whenReady().then(() => {
         try {
@@ -169,23 +192,25 @@ function main(): void {
             log("LinkShield init failed:", e);
         }
         try {
+            initFeatures();
+        } catch (e) {
+            log("Feature init failed:", e);
+        }
+        try {
             initAutoRepatch();
         } catch (e) {
             log("Auto re-patch failed:", e);
         }
     });
 
-    let lastAcrylic = isPluginEnabled(settings, "windowTweaks") && settings.plugins.windowTweaks?.acrylic === true;
+    // Opacity / Mica / Acrylic / icon apply live when the Window settings change
+    let lastWindow = JSON.stringify(settings.window);
     onSettingsChange(s => {
-        // Acrylic can be toggled live on Windows 11
-        const on = isPluginEnabled(s, "windowTweaks") && s.plugins.windowTweaks?.acrylic === true;
-        if (on === lastAcrylic) return;
-        lastAcrylic = on;
+        const next = JSON.stringify(s.window);
+        if (next === lastWindow) return;
+        lastWindow = next;
         for (const win of electron.BrowserWindow.getAllWindows()) {
-            if (win.isDestroyed() || !originalPreloads.has(win.webContents.id) || !win.setBackgroundMaterial) continue;
-            try {
-                win.setBackgroundMaterial(on ? "acrylic" : "none");
-            } catch { /* unsupported OS */ }
+            if (!win.isDestroyed() && originalPreloads.has(win.webContents.id)) applyWindowSettings(win);
         }
     });
 

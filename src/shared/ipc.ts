@@ -28,7 +28,47 @@ export const IPC = {
     PHISH_STATUS: "nexuscord:phish-status",
     PHISH_REFRESH: "nexuscord:phish-refresh",
     UNSHORTEN: "nexuscord:unshorten",
-    LINK_BLOCKED: "nexuscord:link-blocked"
+    LINK_BLOCKED: "nexuscord:link-blocked",
+
+    // ---- v2 features ----
+    DATA_LOAD: "nexuscord:data-load",
+    DATA_SAVE: "nexuscord:data-save",
+    DIALOG_OPEN_FILE: "nexuscord:dialog-open-file",
+    DIALOG_SAVE_TEXT: "nexuscord:dialog-save-text",
+    DIALOG_OPEN_TEXT: "nexuscord:dialog-open-text",
+    DOWNLOAD: "nexuscord:download",
+    SHOW_IN_FOLDER: "nexuscord:show-in-folder",
+    HTTP: "nexuscord:http",
+    WINDOW_SET: "nexuscord:window-set",
+    WINDOW_ACTION: "nexuscord:window-action",
+    WINDOWS_HELLO: "nexuscord:windows-hello",
+    MEDIA_SESSION: "nexuscord:media-session",
+    UPDATE_CHECK: "nexuscord:update-check",
+    UPDATE_APPLY: "nexuscord:update-apply",
+    SAFE_MODE: "nexuscord:safe-mode",
+    BOOT_OK: "nexuscord:boot-ok",
+    MEM_HISTORY: "nexuscord:mem-history",
+    LAUNCH_INSTANCE: "nexuscord:launch-instance",
+    SECRET_SET: "nexuscord:secret-set",
+    SECRET_HAS: "nexuscord:secret-has",
+    GIST_SYNC: "nexuscord:gist-sync",
+    ADDON_INSTALL: "nexuscord:addon-install",
+    ADDON_DELETE: "nexuscord:addon-delete",
+    MAIN_EVENT: "nexuscord:main-event",
+    APP_INFO: "nexuscord:app-info"
 } as const;
+
+/** Hosts the renderer may reach through the main process (CORS-free) - nothing else. */
+export const HTTP_ALLOWLIST = [
+    "translate.googleapis.com",
+    "api.betterdiscord.app",
+    "betterdiscord.app",
+    "raw.githubusercontent.com",
+    "api.github.com",
+    "github.com",
+    "objects.githubusercontent.com",
+    "fonts.googleapis.com",
+    "www.virustotal.com"
+];
 
 export type FolderKind = "themes" | "plugins" | "data";

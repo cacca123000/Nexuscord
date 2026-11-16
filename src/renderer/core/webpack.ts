@@ -10,7 +10,10 @@
  * Every search and patch is isolated in try/catch: a Discord update can make
  * a finder return `undefined`, but it can never crash the client.
  */
+import { toFunctionExpression } from "../../shared/patchUtils";
 import { Logger } from "./logger";
+
+export { toFunctionExpression };
 
 const log = new Logger("Webpack");
 
@@ -30,8 +33,37 @@ export interface CodePatch {
     replacement: { match: string | RegExp; replace: string | ((substring: string, ...groups: string[]) => string) }[];
 }
 
+/**
+ * Discord ships MORE THAN ONE webpack runtime sharing `webpackChunkdiscord_app`
+ * (e.g. the 12 MB main `web.js` app plus a small `libdiscore` runtime), so every
+ * instance is tracked and searched. `wreq` is the biggest one (the main app).
+ */
+const instances: WebpackRequire[] = [];
 export let wreq: WebpackRequire | undefined;
 export let cache: WebpackRequire["c"] | undefined;
+
+function pickPrimary() {
+    let best: WebpackRequire | undefined;
+    let bestSize = -1;
+    for (const r of instances) {
+        const n = Object.keys(r.m).length;
+        if (n > bestSize) {
+            best = r;
+            bestSize = n;
+        }
+    }
+    wreq = best;
+    cache = best?.c;
+}
+
+/** Iterates the module caches of every runtime. */
+function* allCacheEntries(): Generator<{ loaded: boolean; exports: any }> {
+    for (const r of instances) {
+        const c = r.c;
+        if (!c) continue;
+        for (const id in c) yield c[id];
+    }
+}
 
 const readyCallbacks: ((w: WebpackRequire) => void)[] = [];
 const waiters: { filter: FilterFn; cb: (mod: any) => void; owner: string }[] = [];
@@ -114,12 +146,9 @@ function testFilter(filter: FilterFn, value: any): boolean {
     }
 }
 
-export function find(filter: FilterFn, opts: { all?: false } = {}): ModuleExports | undefined {
-    void opts;
-    if (!cache) return undefined;
-    for (const id in cache) {
-        const mod = cache[id];
-        if (!mod?.loaded || mod.exports == null) continue;
+export function find(filter: FilterFn): ModuleExports | undefined {
+    for (const mod of allCacheEntries()) {
+        if (mod?.exports == null) continue;
         try {
             for (const c of candidates(mod.exports)) if (testFilter(filter, c)) return c;
         } catch { /* exotic exports */ }
@@ -129,10 +158,8 @@ export function find(filter: FilterFn, opts: { all?: false } = {}): ModuleExport
 
 export function findAll(filter: FilterFn): ModuleExports[] {
     const out: any[] = [];
-    if (!cache) return out;
-    for (const id in cache) {
-        const mod = cache[id];
-        if (!mod?.loaded || mod.exports == null) continue;
+    for (const mod of allCacheEntries()) {
+        if (mod?.exports == null) continue;
         try {
             for (const c of candidates(mod.exports)) if (testFilter(filter, c)) out.push(c);
         } catch { /* ignore */ }
@@ -142,9 +169,8 @@ export function findAll(filter: FilterFn): ModuleExports[] {
 
 /** Finds a module whose top-level exports object contains a value matching `filter`; returns [exportsObject, key]. */
 export function findExportKey(filter: FilterFn): [any, string] | undefined {
-    if (!cache) return undefined;
-    for (const id in cache) {
-        const exp = cache[id]?.exports;
+    for (const mod of allCacheEntries()) {
+        const exp = mod?.exports;
         if (isBlacklisted(exp) || typeof exp !== "object") continue;
         for (const key in exp) {
             let v: any;
@@ -226,10 +252,10 @@ export function onceReady(cb: (w: WebpackRequire) => void): void {
 // ---------------------------------------------------------------------------
 export function addCodePatch(patch: CodePatch): void {
     codePatches.push(patch);
-    if (wreq) {
-        // Patch factories that are registered but not yet executed
-        for (const id in wreq.m) {
-            if (!wreq.c?.[id]) wreq.m[id] = wrapFactory(id, unwrap(wreq.m[id]));
+    // Patch factories that are registered but not yet executed
+    for (const r of instances) {
+        for (const id in r.m) {
+            if (!r.c?.[id]) r.m[id] = wrapFactory(id, unwrap(r.m[id]), true);
         }
     }
 }
@@ -269,7 +295,7 @@ function applyCodePatches(id: PropertyKey, factory: Function): Function {
     if (!changed) return factory;
     try {
         // eslint-disable-next-line no-eval
-        return (0, eval)(`0,${code}\n//# sourceURL=nexuscord-patched://WebpackModule${String(id)}`);
+        return (0, eval)(`0,${toFunctionExpression(code)}\n//# sourceURL=nexuscord-patched://WebpackModule${String(id)}`);
     } catch (e) {
         log.error(`Patched module ${String(id)} failed to compile - using the original`, e);
         return factory;
@@ -299,8 +325,9 @@ function notifyWaiters(exports: any): void {
     }
 }
 
-function wrapFactory(id: PropertyKey, original: Function): Function {
-    if (!original || (original as any)[WRAPPED]) return original;
+function wrapFactory(id: PropertyKey, original: Function, force = false): Function {
+    if (!original || (!force && (original as any)[WRAPPED])) return original;
+    original = unwrap(original);
     const patched = applyCodePatches(id, original);
     const wrapped = function (this: any, module: any, exports: any, require: any) {
         patched.call(this, module, exports, require);
@@ -316,10 +343,10 @@ function wrapFactory(id: PropertyKey, original: Function): Function {
 }
 
 function onWebpackRequire(r: WebpackRequire): void {
-    if (wreq || !r?.m) return;
-    wreq = r;
-    cache = r.c;
-    log.info("Captured __webpack_require__");
+    if (!r?.m || instances.includes(r)) return;
+    instances.push(r);
+    const first = instances.length === 1;
+    log.info(`Captured webpack runtime #${instances.length}`);
 
     for (const id in r.m) r.m[id] = wrapFactory(id, r.m[id]);
     // Factories registered from now on (lazy chunks) go through our proxy
@@ -330,6 +357,8 @@ function onWebpackRequire(r: WebpackRequire): void {
         }
     });
 
+    pickPrimary();
+    if (!first) return;
     for (const cb of readyCallbacks.splice(0)) {
         try {
             cb(r);
@@ -386,9 +415,14 @@ export const Webpack = {
     onceReady,
     addCodePatch,
     get require() {
+        pickPrimary();
         return wreq;
     },
     get cache() {
+        pickPrimary();
         return cache;
+    },
+    get instances() {
+        return instances.slice();
     }
 };

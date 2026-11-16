@@ -7,23 +7,34 @@
  */
 import { en, TranslationKey } from "../i18n/en";
 import { it } from "../i18n/it";
+import { de, es, fr, pt } from "../i18n/packs";
 import { subscribe } from "./flux";
+import { onDomReady } from "./dom";
 import { Logger } from "./logger";
 import { Settings } from "./settings";
 import { findByProps, findStore, waitFor, filters } from "./webpack";
 
 export type { TranslationKey };
-export type Lang = "en" | "it";
+export type Lang = "en" | "it" | "es" | "fr" | "de" | "pt";
 
 const log = new Logger("i18n");
-const dictionaries: Record<Lang, Record<TranslationKey, string>> = { en, it };
+/** en + it are complete (type-checked); other languages fall back to English per key. */
+const dictionaries: Record<Lang, Partial<Record<TranslationKey, string>>> = { en, it, es, fr, de, pt };
+export const SUPPORTED_LANGUAGES: Lang[] = ["en", "it", "es", "fr", "de", "pt"];
+
+/** Registers (or extends) a dictionary - used by the extra-language packs. */
+export function addTranslations(lang: Lang, dict: Partial<Record<TranslationKey, string>>) {
+    dictionaries[lang] = { ...dictionaries[lang], ...dict };
+}
 const listeners = new Set<(lang: Lang) => void>();
 
 let discordLocale = "en-US";
 let active: Lang = "en";
 
 function normalize(locale: string | undefined | null): Lang {
-    return locale && /^it(?:[-_]|$)/i.test(locale) ? "it" : "en";
+    const m = /^([a-z]{2})(?:[-_]|$)/i.exec(locale ?? "");
+    const code = m?.[1].toLowerCase() as Lang | undefined;
+    return code && SUPPORTED_LANGUAGES.includes(code) ? code : "en";
 }
 
 /** Reads Discord's current locale from its internal stores (never throws). */
@@ -42,7 +53,7 @@ function readDiscordLocale(): string | undefined {
         const l = proto?.settings?.localization?.locale?.value;
         if (typeof l === "string") return l;
     } catch { /* not loaded yet */ }
-    return document.documentElement.lang || undefined;
+    return document.documentElement?.lang || undefined;
 }
 
 function recompute(): void {
@@ -69,7 +80,7 @@ function syncFromDiscord(locale?: string): void {
 }
 
 export function initI18n(): void {
-    discordLocale = document.documentElement.lang || navigator.language || "en-US";
+    discordLocale = document.documentElement?.lang || navigator.language || "en-US";
     recompute();
 
     // 1. LocaleStore as soon as webpack loads it
@@ -85,11 +96,15 @@ export function initI18n(): void {
     subscribe("USER_SETTINGS_PROTO_UPDATE", () => setTimeout(() => syncFromDiscord(), 0));
     subscribe("CONNECTION_OPEN", () => setTimeout(() => syncFromDiscord(), 0));
 
-    // 3. <html lang="..."> is updated by Discord whenever the locale changes
-    new MutationObserver(() => syncFromDiscord(document.documentElement.lang || undefined)).observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ["lang"]
-    });
+    // 3. <html lang="..."> is updated by Discord whenever the locale changes.
+    //    (At preload time the document may not exist yet.)
+    const observeLang = () =>
+        new MutationObserver(() => syncFromDiscord(document.documentElement?.lang || undefined)).observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ["lang"]
+        });
+    if (document.documentElement) observeLang();
+    else onDomReady(() => (syncFromDiscord(), observeLang()));
 
     Settings.subscribe(() => recompute());
 }
@@ -97,6 +112,7 @@ export function initI18n(): void {
 /** Translate a key, interpolating `{placeholders}`. Falls back to English, then to the key itself. */
 export function t(key: TranslationKey, vars?: Record<string, string | number>): string {
     let s: string = dictionaries[active][key] ?? en[key] ?? key;
+    if (!vars) return s;
     if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? String(vars[k]) : m));
     return s;
 }

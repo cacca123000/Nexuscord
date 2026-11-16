@@ -1,7 +1,8 @@
-import type { TranslationKey } from "./en";
+import type { enCore, TranslationKey } from "./en";
+import { itV2 } from "./it-v2";
 
 /** Italiano - traduzione completa (il type checker garantisce che non manchi nessuna chiave). */
-export const it: Record<TranslationKey, string> = {
+const itCore: Record<keyof typeof enCore, string> = {
     "app.name": "NexusCord",
     "app.tagline": "Mod per Discord tutto-in-uno e ultraleggera",
     "app.welcome": "NexusCord è attivo! Aprilo dalle Impostazioni utente o premi Ctrl+Alt+N.",
@@ -163,3 +164,5 @@ export const it: Record<TranslationKey, string> = {
     "bd.pluginFailed": "Impossibile caricare {name}: {error}",
     "bd.unsupported": "Questa API di BetterDiscord non è supportata da NexusCord: {api}"
 };
+
+export const it: Record<TranslationKey, string> = { ...itCore, ...itV2 };

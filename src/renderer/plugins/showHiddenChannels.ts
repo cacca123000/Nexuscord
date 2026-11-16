@@ -143,6 +143,7 @@ export default definePlugin({
     id: ID,
     name: "plugin.showHiddenChannels.name",
     description: "plugin.showHiddenChannels.desc",
+    category: "utility",
     authors: ["NexusCord"],
 
     start() {

@@ -57,22 +57,31 @@ export function Fragment(props: { children?: Child[] }): HTMLElement {
     return frag as unknown as HTMLElement;
 }
 
+/** Re-renders `host` with `render()` while keeping focus & caret in inputs that survive. */
+export function renderInto(host: HTMLElement, render: () => Node): void {
+    const active = document.activeElement as HTMLInputElement | null;
+    const focusKey = active && host.contains(active) ? active.dataset.focusKey : undefined;
+    const caret = focusKey ? active!.selectionStart : null;
+    host.replaceChildren(render());
+    if (focusKey) {
+        const next = host.querySelector<HTMLInputElement>(`[data-focus-key="${focusKey}"]`);
+        if (next) {
+            next.focus();
+            if (caret != null) next.setSelectionRange(caret, caret);
+        }
+    }
+}
+
+/** A host element + render function. Nothing renders until the first `redraw()` (lazy). */
+export function createView(render: () => Node, className = ""): { host: HTMLElement; redraw: () => void } {
+    const host = document.createElement("div");
+    if (className) host.className = className;
+    return { host, redraw: () => renderInto(host, render) };
+}
+
 /** Replaces the content of `host` with `render()` and re-renders when `subscribe` fires. */
 export function reactive(host: HTMLElement, render: () => Node, ...subscribers: ((cb: () => void) => () => void)[]): () => void {
-    const draw = () => {
-        // Keep focus/caret on inputs that survive re-render (search boxes)
-        const active = document.activeElement as HTMLInputElement | null;
-        const focusKey = active && host.contains(active) ? active.dataset.focusKey : undefined;
-        const caret = focusKey ? active!.selectionStart : null;
-        host.replaceChildren(render());
-        if (focusKey) {
-            const next = host.querySelector<HTMLInputElement>(`[data-focus-key="${focusKey}"]`);
-            if (next) {
-                next.focus();
-                if (caret != null) next.setSelectionRange(caret, caret);
-            }
-        }
-    };
+    const draw = () => renderInto(host, render);
     draw();
     const unsubs = subscribers.map(s => s(draw));
     return () => unsubs.forEach(u => u());

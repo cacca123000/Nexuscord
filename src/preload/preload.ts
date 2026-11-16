@@ -60,6 +60,48 @@ const NexusCordNative = {
         relaunch: () => ipcRenderer.invoke(IPC.RELAUNCH),
         setAcrylic: (enabled: boolean) => ipcRenderer.invoke(IPC.SET_ACRYLIC, !!enabled)
     },
+    data: {
+        load: (key: string): unknown => ipcRenderer.sendSync(IPC.DATA_LOAD, String(key)),
+        save: (key: string, data: unknown): Promise<boolean> => ipcRenderer.invoke(IPC.DATA_SAVE, String(key), data)
+    },
+    files: {
+        pick: (opts: { kind?: "image" | "audio" | "video" | "json" | "any"; copyAs?: string }): Promise<{ path: string; name: string; size: number; mime: string; dataUrl: string | null } | null> =>
+            ipcRenderer.invoke(IPC.DIALOG_OPEN_FILE, opts),
+        saveText: (name: string, content: string): Promise<string | null> => ipcRenderer.invoke(IPC.DIALOG_SAVE_TEXT, String(name), String(content)),
+        openText: (): Promise<string | null> => ipcRenderer.invoke(IPC.DIALOG_OPEN_TEXT),
+        download: (url: string, fileName: string, folder?: string): Promise<string> => ipcRenderer.invoke(IPC.DOWNLOAD, String(url), String(fileName), folder ? String(folder) : undefined),
+        showInFolder: (path: string) => ipcRenderer.invoke(IPC.SHOW_IN_FOLDER, String(path))
+    },
+    net: {
+        /** CORS-free request to an allowlisted host (translate, BD store, GitHub). */
+        request: (url: string, init?: { method?: string; headers?: Record<string, string>; body?: string }): Promise<{ status: number; ok: boolean; body: string; headers: Record<string, string> }> =>
+            ipcRenderer.invoke(IPC.HTTP, String(url), init ?? {})
+    },
+    addons: {
+        install: (kind: "theme" | "plugin", fileName: string, sourceUrl: string) => ipcRenderer.invoke(IPC.ADDON_INSTALL, kind, String(fileName), String(sourceUrl)),
+        remove: (kind: "theme" | "plugin", fileName: string) => ipcRenderer.invoke(IPC.ADDON_DELETE, kind, String(fileName))
+    },
+    window: {
+        applySettings: () => ipcRenderer.invoke(IPC.WINDOW_SET),
+        action: (a: "devtools" | "reload" | "hide" | "minimize" | "restart" | "restart-safe") => ipcRenderer.invoke(IPC.WINDOW_ACTION, a)
+    },
+    system: {
+        info: (): { version: string; electron: string; chrome: string; node: string; platform: string; arch: string; discord?: string; safeMode: boolean; dataDir: string; distDir: string; profile: string | null } =>
+            ipcRenderer.sendSync(IPC.APP_INFO),
+        safeMode: (): boolean => ipcRenderer.sendSync(IPC.SAFE_MODE),
+        bootOk: () => ipcRenderer.invoke(IPC.BOOT_OK),
+        windowsHello: (message: string): Promise<boolean> => ipcRenderer.invoke(IPC.WINDOWS_HELLO, String(message)),
+        mediaSession: (): Promise<{ app?: string; title?: string; artist?: string; album?: string; status?: string; position?: number; duration?: number } | null> =>
+            ipcRenderer.invoke(IPC.MEDIA_SESSION),
+        memHistory: (): Promise<{ t: number; total: number; renderer: number; gpu: number; browser: number }[]> => ipcRenderer.invoke(IPC.MEM_HISTORY),
+        launchInstance: (profile: string) => ipcRenderer.invoke(IPC.LAUNCH_INSTANCE, String(profile)),
+        checkUpdate: () => ipcRenderer.invoke(IPC.UPDATE_CHECK),
+        applyUpdate: () => ipcRenderer.invoke(IPC.UPDATE_APPLY),
+        setSecret: (key: string, value: string) => ipcRenderer.invoke(IPC.SECRET_SET, String(key), String(value)),
+        hasSecret: (key: string): boolean => ipcRenderer.sendSync(IPC.SECRET_HAS, String(key)),
+        gistSync: (direction: "push" | "pull", payload?: string) => ipcRenderer.invoke(IPC.GIST_SYNC, direction, payload),
+        onEvent: (cb: (event: string, payload: unknown) => void) => listen(IPC.MAIN_EVENT, cb)
+    },
     linkShield: {
         isPhishing: (host: string): boolean => ipcRenderer.sendSync(IPC.PHISH_CHECK_SYNC, String(host)),
         status: () => ipcRenderer.invoke(IPC.PHISH_STATUS),

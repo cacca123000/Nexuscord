@@ -69,6 +69,7 @@ export default definePlugin({
     id: ID,
     name: "plugin.noTrack.name",
     description: "plugin.noTrack.desc",
+    category: "privacy",
     authors: ["NexusCord"],
 
     start() {

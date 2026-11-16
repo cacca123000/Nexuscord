@@ -9,9 +9,12 @@ import { I18n, initI18n } from "./core/i18n";
 import { Logger } from "./core/logger";
 import { Native } from "./core/native";
 import { Patcher } from "./core/patcher";
-import { PluginManager, registerPlugin, startEnabledPlugins } from "./core/pluginManager";
+import { isSafeMode, PluginManager, registerPlugin, startEnabledPlugins } from "./core/pluginManager";
 import { Settings } from "./core/settings";
-import { initSettingsUI, openPanelModal } from "./core/settingsUI";
+import * as Discord from "./core/discord";
+import { registerPages } from "./core/pages";
+import { mountPage, initSettingsUI, openSettings } from "./core/settingsUI";
+import { openOnboarding } from "./core/onboarding";
 import { initThemeEngine, ThemeEngine } from "./core/themeEngine";
 import { toast } from "./core/ui";
 import { initWebpack, Webpack } from "./core/webpack";
@@ -31,6 +34,7 @@ function safe(name: string, fn: () => unknown) {
 
 function boot() {
     if ((window as any).NexusCord) return; // injected twice (e.g. reload) - never double-hook
+    if (window.top !== window) return; // only Discord's main frame, never iframes
     const started = performance.now();
 
     // Synchronous, must win the race against Discord's webpack runtime
@@ -51,25 +55,33 @@ function boot() {
         Settings,
         Plugins: PluginManager,
         Themes: ThemeEngine,
-        openSettings: openPanelModal,
+        Discord,
+        openSettings,
+        openOnboarding,
+        mountPage,
         toast
     };
 
     onDomReady(() => {
         setStyle("nexuscord-core", coreCss);
-        safe("themes", initThemeEngine);
+        if (!isSafeMode()) safe("themes", initThemeEngine);
+        safe("pages", registerPages);
         safe("settings UI", initSettingsUI);
 
         // BetterDiscord plugins expect Discord to be fully loaded
         let bdStarted = false;
         const startBd = () => {
-            if (bdStarted) return;
+            if (bdStarted || isSafeMode()) return;
             bdStarted = true;
             safe("BdApi", initBdCompat);
         };
         const unsub = subscribe("CONNECTION_OPEN", () => {
             unsub();
             setTimeout(startBd, 0);
+            // Discord ran fine for 20s after connecting: clear the crash counter
+            setTimeout(() => Native.system?.bootOk?.(), 20000);
+            // First run: guided setup
+            if (!Settings.get().onboardingDone && !isSafeMode()) setTimeout(openOnboarding, 6000);
         });
         setTimeout(startBd, 15000);
 

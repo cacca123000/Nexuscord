@@ -1,5 +1,5 @@
 /** Persistent settings schema (stored in %appdata%\NexusCord\settings.json). */
-export type LanguageSetting = "auto" | "en" | "it";
+export type LanguageSetting = "auto" | "en" | "it" | "es" | "fr" | "de" | "pt";
 
 export interface PluginSettings {
     enabled: boolean;
@@ -11,7 +11,29 @@ export interface PerformanceSettings {
     maxOldSpaceSize: number;
     processPerSite: boolean;
     gpuRasterization: boolean;
+    /** Off by default: keeping timers running while minimized costs CPU/RAM. */
     disableBackgroundTimerThrottling: boolean;
+    /** Reload the window when it is hidden and above this many MB (0 = off). */
+    autoRestartMB: number;
+    startMinimized: boolean;
+}
+
+export interface WindowSettings {
+    /** 0.3 - 1 */
+    opacity: number;
+    material: "none" | "acrylic" | "mica" | "tabbed";
+    /** Absolute path of a custom .png/.ico copied into the data folder ("" = Discord's) */
+    customIcon: string;
+    customTrayIcon: string;
+    splashColor: string;
+    splashImage: string;
+}
+
+export interface SecuritySettings {
+    appLock: boolean;
+    pinHash: string;
+    pinSalt: string;
+    windowsHello: boolean;
 }
 
 export interface LinkShieldStats {
@@ -32,8 +54,15 @@ export interface NexusSettings {
     themes: Record<string, boolean>;
     quickCssEnabled: boolean;
     performance: PerformanceSettings;
+    window: WindowSettings;
+    security: SecuritySettings;
+    updates: { autoCheck: boolean; lastCheck: number };
+    sync: { gistId: string; lastSync: number };
     linkShieldStats: LinkShieldStats;
     welcomeShown: boolean;
+    onboardingDone: boolean;
+    /** Where the NexusCord section appears in Discord settings */
+    settingsLocation: "top" | "aboveUtility" | "bottom";
 }
 
 export const DEFAULT_SETTINGS: NexusSettings = {
@@ -46,8 +75,14 @@ export const DEFAULT_SETTINGS: NexusSettings = {
         maxOldSpaceSize: 512,
         processPerSite: true,
         gpuRasterization: true,
-        disableBackgroundTimerThrottling: true
+        disableBackgroundTimerThrottling: false,
+        autoRestartMB: 0,
+        startMinimized: false
     },
+    window: { opacity: 1, material: "none", customIcon: "", customTrayIcon: "", splashColor: "", splashImage: "" },
+    security: { appLock: false, pinHash: "", pinSalt: "", windowsHello: false },
+    updates: { autoCheck: true, lastCheck: 0 },
+    sync: { gistId: "", lastSync: 0 },
     linkShieldStats: {
         phishingBlocked: 0,
         spoofsBlocked: 0,
@@ -56,11 +91,16 @@ export const DEFAULT_SETTINGS: NexusSettings = {
         linksUnshortened: 0,
         executablesIntercepted: 0
     },
-    welcomeShown: false
+    welcomeShown: false,
+    onboardingDone: false,
+    settingsLocation: "aboveUtility"
 };
 
 /** Built-in plugins that are on by default (the rest are opt-in). */
-export const DEFAULT_ENABLED_PLUGINS = ["noTrack", "linkShield", "lowRamOptimizer", "windowTweaks"];
+export const DEFAULT_ENABLED_PLUGINS = [
+    "noTrack", "linkShield", "lowRamOptimizer", "windowTweaks", "betterCodeBlocks", "imageViewer", "clearUrlsOutgoing",
+    "uploadPrivacy", "pluginScanner", "scamGuard", "accountAge", "copyTools", "safeModeGuard", "commandPalette", "declutter"
+];
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
     return typeof v === "object" && v !== null && !Array.isArray(v);

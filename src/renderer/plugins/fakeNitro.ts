@@ -13,6 +13,7 @@ import { Patcher } from "../core/patcher";
 import { definePlugin, getOption } from "../core/pluginManager";
 import { Icons } from "../core/ui";
 import { filters, findStoreLazy, waitFor } from "../core/webpack";
+import { addPreSendHook } from "../core/outgoing";
 
 const ID = "fakeNitro";
 const UserStore = findStoreLazy("UserStore");
@@ -81,6 +82,8 @@ export default definePlugin({
     id: ID,
     name: "plugin.fakeNitro.name",
     description: "plugin.fakeNitro.desc",
+    category: "chat",
+    tosRisk: true,
     authors: ["NexusCord"],
     options: {
         emojiSize: {
@@ -115,33 +118,27 @@ export default definePlugin({
             }, ID)
         );
 
-        // Outgoing messages
+        // Outgoing messages (shared pipeline, runs after snippets/fancy text)
+        cleanups.push(
+            addPreSendHook(ID, ({ channelId, message, options }) => {
+                if (hasRealNitro()) return;
+                const guildId = ChannelStore.getChannel?.(channelId)?.guild_id;
+                rewriteMessage(message, guildId, Number(getOption(ID, "emojiSize")) || 48);
+                const ids: string[] | undefined = options?.stickerIds;
+                if (getOption(ID, "stickers") && Array.isArray(ids) && ids.length) {
+                    const links: string[] = [];
+                    options.stickerIds = ids.filter(id => {
+                        const sticker = StickersStore.getStickerById?.(id);
+                        const url = isStickerUnavailable(sticker, guildId) ? stickerUrl(sticker) : null;
+                        if (url) links.push(url);
+                        return !url;
+                    });
+                    if (links.length) message.content = [message.content, ...links].filter(Boolean).join(" ");
+                }
+            }, 80)
+        );
         cleanups.push(
             waitFor(filters.byProps("sendMessage", "editMessage"), MessageActions => {
-                Patcher.before(ID, MessageActions, "sendMessage", (_s, args) => {
-                    if (hasRealNitro()) return;
-                    const [channelId, message, , options] = args;
-                    const guildId = ChannelStore.getChannel?.(channelId)?.guild_id;
-                    rewriteMessage(message, guildId, Number(getOption(ID, "emojiSize")) || 48);
-
-                    const ids: string[] | undefined = options?.stickerIds;
-                    if (getOption(ID, "stickers") && Array.isArray(ids) && ids.length) {
-                        const links: string[] = [];
-                        options.stickerIds = ids.filter(id => {
-                            const sticker = StickersStore.getStickerById?.(id);
-                            const url = isStickerUnavailable(sticker, guildId) ? stickerUrl(sticker) : null;
-                            if (url) links.push(url);
-                            return !url;
-                        });
-                        if (links.length) message.content = [message.content, ...links].filter(Boolean).join(" ");
-                    }
-                    return args;
-                });
-                Patcher.before(ID, MessageActions, "editMessage", (_s, args) => {
-                    if (hasRealNitro()) return;
-                    const [channelId, , message] = args;
-                    rewriteMessage(message, ChannelStore.getChannel?.(channelId)?.guild_id, Number(getOption(ID, "emojiSize")) || 48);
-                });
                 if (typeof MessageActions.sendStickers === "function") {
                     Patcher.instead(ID, MessageActions, "sendStickers", (self, args, original) => {
                         const [channelId, stickerIds, content = ""] = args;

@@ -50,6 +50,8 @@ declare module "electron" {
         webContents: WebContents;
         isDestroyed(): boolean;
         isMinimized(): boolean;
+        isVisible(): boolean;
+        show(): void;
         setBackgroundMaterial?(material: "auto" | "none" | "mica" | "acrylic" | "tabbed"): void;
         setBackgroundColor(color: string): void;
     }
